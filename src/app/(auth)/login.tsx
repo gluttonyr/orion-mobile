@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Link, useLocalSearchParams, useRouter } from 'expo-router';
-import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react-native';
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react-native';
 import { useAuth } from '@/features/auth/hooks';
 import { AuthHeader } from '@/features/auth/AuthHeader';
 import { useToast } from '@/store/toast-store';
@@ -58,10 +58,18 @@ export default function LoginScreen() {
             <Text style={styles.primaryButtonText}>{loading ? 'Connexion…' : 'Se connecter'}</Text>
           </Pressable>
 
-          <View style={styles.signupRow}>
-            <Text style={styles.signupText}>Pas encore de compte ? </Text>
-            <Link href={returnTo === 'checkout' ? { pathname: '/register', params: { returnTo } } : '/register'} asChild><Pressable><Text style={styles.signupLink}>Créer un compte</Text></Pressable></Link>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OU</Text>
+            <View style={styles.dividerLine} />
           </View>
+          <Text style={styles.signupText}>Pas encore de compte ? L’inscription est gratuite.</Text>
+          <Link href={returnTo === 'checkout' ? { pathname: '/register', params: { returnTo } } : '/register'} asChild>
+            <Pressable style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]} accessibilityRole="button">
+              <Text style={styles.secondaryButtonText}>Créer mon compte</Text>
+              <ArrowRight size={17} color={colors.burgundy} />
+            </Pressable>
+          </Link>
         </View>
         <Text style={styles.footer}>ORION · Commerce, boutiques et opportunités</Text>
       </ScrollView>
@@ -81,8 +89,12 @@ const styles = StyleSheet.create({
   primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.burgundy, borderRadius: 13, marginTop: 22, shadowColor: colors.burgundyDark, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   disabledButton: { opacity: 0.65 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: '800' },
-  signupRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
-  signupText: { color: colors.muted, fontSize: 12 },
-  signupLink: { color: colors.burgundy, fontSize: 12, fontWeight: '800' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 22, marginBottom: 14 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.line },
+  dividerText: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
+  signupText: { color: colors.muted, fontSize: 12, textAlign: 'center', marginBottom: 10 },
+  secondaryButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: colors.burgundy, borderRadius: 13, backgroundColor: '#FBF2F3' },
+  secondaryButtonPressed: { backgroundColor: '#F5E4E8' },
+  secondaryButtonText: { color: colors.burgundy, fontSize: 14, fontWeight: '800' },
   footer: { textAlign: 'center', color: colors.muted, fontSize: 10, marginTop: 20 },
 });

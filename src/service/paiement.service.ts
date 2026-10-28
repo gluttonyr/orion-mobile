@@ -6,6 +6,7 @@ export interface InitFedaPayPaymentInput {
   produitIds: number[];
   quantites: number[];
   platform: 'mobile';
+  adresseLivraison: string;
 }
 
 export interface FedaPayPaymentState {

@@ -1,12 +1,13 @@
-import { BriefcaseBusiness, CheckCircle2, ChevronRight, Clock3, MessageCircle, ShoppingBag, XCircle } from 'lucide-react-native';
+import { BriefcaseBusiness, CheckCircle2, ChevronRight, Clock3, MessageCircle, ShoppingBag, TrendingUp, Wallet, XCircle } from 'lucide-react-native';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { buildClientDashboardStats } from '@/features/orders/client-stats';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CameraView, scanFromURLAsync, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/features/auth/hooks';
 import { useMyOrders } from '@/features/orders/hooks';
-import { useMyApplications } from '@/features/opportunities/hooks';
+import { useMyApplications, useOpportunities } from '@/features/opportunities/hooks';
 import { formatFcfa } from '@/features/redesign/mappers';
 import type { DashboardScreen } from '../shared';
 import { colors, radius, spacing } from '../theme';
@@ -16,6 +17,10 @@ export function ClientDashboardHome({ onNavigate }: { onNavigate: (screen: Dashb
   const { user } = useAuth();
   const { orders, loading: ordersLoading } = useMyOrders();
   const { applications, loading: applicationsLoading } = useMyApplications();
+  const { opportunities, loading: opportunitiesLoading } = useOpportunities();
+  const stats = useMemo(() => buildClientDashboardStats(orders, applications, opportunities), [orders, applications, opportunities]);
+  const maxSpent = Math.max(1, ...stats.monthly.map((month) => month.spent));
+  const loading = ordersLoading || applicationsLoading || opportunitiesLoading;
   const firstName = user?.prenom || 'Bienvenue';
   return <View style={styles.container}>
     <LinearGradient colors={['#811633', '#5D0E28']} style={styles.hero}>
@@ -25,8 +30,38 @@ export function ClientDashboardHome({ onNavigate }: { onNavigate: (screen: Dashb
       <View style={styles.heroOrnament}><View /></View>
     </LinearGradient>
     <View style={styles.metrics}>
-      <Pressable style={styles.metricCard} onPress={() => onNavigate('applications')}><View style={styles.metricIcon}><BriefcaseBusiness size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Candidatures</Text><Text style={styles.metricValue}>{applicationsLoading ? '…' : applications.length}</Text><Text style={styles.metricLink}>Suivre mes demandes <ChevronRight size={13} /></Text></Pressable>
-      <Pressable style={styles.metricCard} onPress={() => onNavigate('orders')}><View style={styles.metricIcon}><ShoppingBag size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Commandes</Text><Text style={styles.metricValue}>{ordersLoading ? '…' : orders.length}</Text><Text style={styles.metricLink}>Retrouver mes achats <ChevronRight size={13} /></Text></Pressable>
+      <View style={styles.metricCard}><View style={styles.metricIcon}><Wallet size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Total dépensé</Text><Text style={styles.metricValue} numberOfLines={1} adjustsFontSizeToFit>{loading ? '…' : formatFcfa(stats.totalSpent)}</Text><Text style={styles.metricHint}>Achats payés sur Orion</Text></View>
+      <Pressable style={styles.metricCard} onPress={() => onNavigate('orders')}><View style={styles.metricIcon}><ShoppingBag size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Commandes payées</Text><Text style={styles.metricValue}>{loading ? '…' : stats.paidOrders}</Text><Text style={styles.metricLink}>Retrouver mes achats <ChevronRight size={13} /></Text></Pressable>
+    </View>
+    <View style={styles.metrics}>
+      <Pressable style={styles.metricCard} onPress={() => onNavigate('applications')}><View style={styles.metricIcon}><BriefcaseBusiness size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Candidatures</Text><Text style={styles.metricValue}>{loading ? '…' : stats.applications}</Text><Text style={styles.metricHint}>{stats.applicationStatuses[1].value} acceptée{stats.applicationStatuses[1].value > 1 ? 's' : ''} · {stats.applicationStatuses[0].value} en attente</Text></Pressable>
+      <View style={styles.metricCard}><View style={styles.metricIcon}><TrendingUp size={19} color={colors.burgundy} /></View><Text style={styles.metricLabel}>Opportunités ouvertes</Text><Text style={styles.metricValue}>{loading ? '…' : stats.openOpportunities}</Text><Text style={styles.metricHint}>Moyenne {formatFcfa(stats.averagePay)}</Text></View>
+    </View>
+    <View style={styles.chartCard}>
+      <Text style={styles.chartKicker}>VOS ACHATS · 6 MOIS</Text>
+      <Text style={styles.chartTitle}>Dépenses et commandes</Text>
+      <View style={styles.barChart}>
+        {stats.monthly.map((month) => <View key={month.key} style={styles.barCol}>
+          <Text style={styles.barValue}>{month.orders ? `${month.orders} cmd` : ''}</Text>
+          <View style={styles.barTrack}><View style={[styles.bar, { height: `${Math.max(4, (month.spent / maxSpent) * 100)}%` }, !month.spent && styles.barEmpty]} /></View>
+          <Text style={styles.barLabel}>{month.label}</Text>
+        </View>)}
+      </View>
+    </View>
+    <View style={styles.chartCard}>
+      <Text style={styles.chartKicker}>VOS PROJETS</Text>
+      <Text style={styles.chartTitle}>Candidatures par statut</Text>
+      <View style={styles.stackedBar}>{stats.applications ? stats.applicationStatuses.filter((status) => status.value).map((status) => <View key={status.name} style={{ flex: status.value, backgroundColor: status.color }} />) : <View style={[styles.flex, { backgroundColor: colors.burgundySoft }]} />}</View>
+      {stats.applicationStatuses.map((status) => <View key={status.name} style={styles.legendRow}><View style={[styles.legendDot, { backgroundColor: status.color }]} /><Text style={styles.legendLabel}>{status.name}</Text><Text style={styles.legendValue}>{status.value}</Text></View>)}
+    </View>
+    <View style={styles.chartCard}>
+      <Text style={styles.chartKicker}>OPPORTUNITÉS</Text>
+      <Text style={styles.chartTitle}>Les mieux rémunérées</Text>
+      {stats.topOpportunities.length ? stats.topOpportunities.map((mission, index) => <Pressable key={mission.id} style={styles.rankRow} onPress={() => onNavigate('opportunities')}>
+        <Text style={styles.rankIndex}>{String(index + 1).padStart(2, '0')}</Text>
+        <View style={styles.flex}><Text style={styles.rankTitle} numberOfLines={1}>{mission.title}</Text><View style={styles.rankTrack}><View style={[styles.rankFill, { width: `${Math.max(5, (mission.amount / stats.topOpportunities[0].amount) * 100)}%` }]} /></View></View>
+        <Text style={styles.rankAmount}>{formatFcfa(mission.amount)}</Text>
+      </Pressable>) : <Text style={styles.chartEmpty}>Les opportunités rémunérées apparaîtront ici.</Text>}
     </View>
     <View style={styles.shortcuts}>
       <Text style={styles.sectionTitle}>Mon espace</Text>
@@ -124,6 +159,29 @@ const styles = StyleSheet.create({
   metricLabel: { color: colors.muted, fontSize: 10, fontWeight: '700', marginTop: 9 },
   metricValue: { color: colors.ink, fontSize: 23, fontWeight: '900', marginTop: 2 },
   metricLink: { color: colors.burgundy, fontSize: 9, fontWeight: '700', flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  metricHint: { color: colors.muted, fontSize: 9, marginTop: 4 },
+  chartCard: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.white, padding: 15 },
+  chartKicker: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 1.2 },
+  chartTitle: { color: colors.ink, fontSize: 16, fontWeight: '800', marginTop: 4, marginBottom: 12 },
+  barChart: { height: 170, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  barCol: { flex: 1, height: '100%', alignItems: 'center' },
+  barValue: { height: 14, color: colors.burgundy, fontSize: 8, fontWeight: '800' },
+  barTrack: { flex: 1, width: '100%', maxWidth: 30, justifyContent: 'flex-end', marginTop: 4 },
+  bar: { width: '100%', borderTopLeftRadius: 7, borderTopRightRadius: 7, backgroundColor: colors.burgundy },
+  barEmpty: { backgroundColor: colors.burgundySoft },
+  barLabel: { color: colors.muted, fontSize: 10, fontWeight: '600', marginTop: 7 },
+  stackedBar: { height: 14, flexDirection: 'row', gap: 3, overflow: 'hidden', borderRadius: 7, marginBottom: 8 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 },
+  legendDot: { width: 9, height: 9, borderRadius: 5 },
+  legendLabel: { flex: 1, color: colors.muted, fontSize: 12 },
+  legendValue: { color: colors.ink, fontSize: 12, fontWeight: '800' },
+  rankRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  rankIndex: { width: 20, color: colors.muted, fontSize: 10, fontWeight: '700' },
+  rankTitle: { color: colors.ink, fontSize: 12, fontWeight: '700', marginBottom: 6 },
+  rankTrack: { height: 7, overflow: 'hidden', borderRadius: 4, backgroundColor: colors.burgundySoft },
+  rankFill: { height: '100%', borderRadius: 4, backgroundColor: colors.burgundy },
+  rankAmount: { color: colors.burgundy, fontSize: 11, fontWeight: '800' },
+  chartEmpty: { color: colors.muted, fontSize: 12, lineHeight: 18, paddingVertical: 12, textAlign: 'center' },
   shortcuts: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, backgroundColor: colors.white, paddingHorizontal: 13, paddingTop: 14 },
   sectionTitle: { color: colors.ink, fontSize: 17, fontWeight: '800' },
   shortcut: { minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 11, borderTopWidth: 1, borderTopColor: colors.line, marginTop: 10, paddingVertical: 9 },

@@ -37,7 +37,7 @@ export function MessagesScreen() {
         <TextInput style={styles.searchInput} value={search} onChangeText={setSearch} placeholder="Rechercher une conversation..." placeholderTextColor={colors.muted} />
       </View>
 
-      {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 24 }} /> : conversations.length === 0 ? <Text style={styles.emptyState}>Aucune discussion pour le moment. Les échanges enregistrés sur Orion apparaîtront ici.</Text> : null}
+      {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 24 }} /> : conversations.length === 0 ? <Text style={styles.emptyState}>Aucune discussion. Une nouvelle discussion s’affichera lorsque vous entrerez en contact avec un utilisateur.</Text> : null}
       {!loading && conversations.length > 0 ? <View style={styles.convList}>
         {visibleConversations.map((conv) => {
           const active = conv.id === activeId;

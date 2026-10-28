@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Location from 'expo-location';
+import { MapPin } from 'lucide-react-native';
+import { FormField } from '@/components/dashboard/form';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +26,17 @@ export default function CheckoutScreen() {
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [result, setResult] = useState<PaymentResult>(null);
   const [error, setError] = useState('');
+  const [deliveryLocation, setDeliveryLocation] = useState('');
+
+  // Same input as the store location: a Google Maps link or the current position.
+  const capturePosition = async () => {
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Autorisation requise', 'Autorisez l’accès à votre position pour la renseigner.'); return; }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setDeliveryLocation(`https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`);
+    } catch { Alert.alert('Position indisponible', 'Collez un lien Google Maps ou réessayez.'); }
+  };
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.replace({ pathname: '/login', params: { returnTo: 'checkout' } } as any);
@@ -88,8 +102,12 @@ export default function CheckoutScreen() {
   };
 
   const startPayment = async () => {
-    if (!user?.prenom?.trim() || !user?.nom?.trim() || !user?.email?.trim() || !user?.adresse?.trim()) {
-      setError('Complète ton prénom, ton nom, ton e-mail et ton adresse dans ton profil avant de commander.');
+    if (!user?.prenom?.trim() || !user?.nom?.trim() || !user?.email?.trim()) {
+      setError('Complète ton prénom, ton nom et ton e-mail dans ton profil avant de commander.');
+      return;
+    }
+    if (!deliveryLocation.trim()) {
+      setError('Indique ton adresse de livraison : colle un lien Google Maps ou utilise ta position actuelle.');
       return;
     }
     if (!items.length) {
@@ -105,6 +123,7 @@ export default function CheckoutScreen() {
         produitIds: items.map((item) => Number(item.id)),
         quantites: items.map((item) => item.quantity),
         platform: 'mobile',
+        adresseLivraison: deliveryLocation.trim(),
       });
       createdPayment = payment;
       setReference(payment.reference);
@@ -164,12 +183,15 @@ export default function CheckoutScreen() {
       <AppHeader variant="back" title="Finaliser la commande" />
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.heading}>Confirmer tes informations</Text>
-        <Text style={styles.muted}>Ces informations viennent de ton compte Orion et seront utilisées pour la commande.</Text>
+        <Text style={styles.muted}>Tes coordonnées viennent de ton compte Orion. Indique où livrer ta commande.</Text>
         <Card style={styles.card}>
           <ProfileLine label="Nom" value={`${user.prenom} ${user.nom}`} />
           <ProfileLine label="E-mail" value={user.email} />
           <ProfileLine label="Téléphone" value={user.contact || 'Non renseigné'} />
-          <ProfileLine label="Adresse de livraison" value={user.adresse || 'Non renseignée'} />
+        </Card>
+        <Card style={styles.card}>
+          <FormField label="Adresse de livraison *" value={deliveryLocation} onChangeText={setDeliveryLocation} placeholder="Collez un lien Google Maps" helper="Vous pouvez aussi utiliser votre position actuelle." />
+          <Pressable style={styles.locationButton} onPress={() => void capturePosition()}><MapPin size={15} color={Palette.primary[500]} /><Text style={styles.locationButtonText}>Utiliser ma position actuelle</Text></Pressable>
         </Card>
         <Card style={styles.card}>
           <Text style={styles.sectionTitle}>Résumé de la commande</Text>
@@ -186,7 +208,7 @@ export default function CheckoutScreen() {
           <Text style={styles.muted}>Tu seras redirigé vers la page sécurisée de FedaPay pour choisir et confirmer le paiement.</Text>
         </Card>
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-        <Button title={busy ? 'Ouverture de FedaPay…' : 'Payer avec FedaPay'} onPress={() => void startPayment()} disabled={busy || items.length === 0} variant="secondary" size="lg" fullWidth icon="lock-closed-outline" />
+        <Button title={busy ? 'Ouverture de FedaPay…' : 'Payer avec FedaPay'} onPress={() => void startPayment()} disabled={busy || items.length === 0 || !deliveryLocation.trim()} variant="secondary" size="lg" fullWidth icon="lock-closed-outline" />
         {busy ? <ActivityIndicator color={Palette.primary[500]} /> : null}
       </ScrollView>
     </SafeAreaView>
@@ -212,6 +234,8 @@ const styles = StyleSheet.create({
   lineTotal: { fontSize: 13, fontWeight: '700', color: Palette.text },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: Palette.border, paddingTop: Spacing.three },
   total: { fontSize: 18, fontWeight: '900', color: Palette.primary[500] },
+  locationButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
+  locationButtonText: { color: Palette.primary[500], fontSize: 12, fontWeight: '700' },
   error: { color: Palette.danger.base, fontSize: 13, lineHeight: 19 },
   resultWrap: { flex: 1, justifyContent: 'center', padding: Spacing.four },
   resultTitle: { fontSize: 21, fontWeight: '900', color: Palette.text },
