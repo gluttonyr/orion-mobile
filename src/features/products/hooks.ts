@@ -23,11 +23,15 @@ export function useProduct(id: number) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Ignore a late response for a previous id.
+    let active = true;
+    setLoading(true);
     productsApi
       .getById(id)
-      .then(setProduct)
-      .catch(() => setProduct(null))
-      .finally(() => setLoading(false));
+      .then((record) => { if (active) setProduct(record); })
+      .catch(() => { if (active) setProduct(null); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [id]);
 
   return { product, loading };
