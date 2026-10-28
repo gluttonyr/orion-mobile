@@ -6,28 +6,21 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useStore } from "@/features/seller/boutique-context";
 import { boutiqueService } from "@/service/boutique.service";
+import { boutiqueCategorieService, type BoutiqueCategorie } from "@/service/boutique-categorie.service";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { Palette, Radius, Shadows, Spacing, BottomTabInset } from "@/constants/theme";
 import { Button, Card, Chip, Input } from "@/components/ui";
-
-const CATEGORIES = [
-  "Électronique",
-  "Mode & Accessoires",
-  "Alimentation",
-  "Beauté & Santé",
-  "Maison & Jardin",
-  "Sport & Loisirs",
-  "Automobile",
-  "Autre",
-];
+import { useToast } from "@/store/toast-store";
 
 export default function ShopFormScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { stores, refreshStores } = useStore();
+  const { showToast } = useToast();
 
   const isEditing = !!id;
   const existingStore = stores.find((s) => s.id === Number(id));
@@ -36,9 +29,27 @@ export default function ShopFormScreen() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
+  const [address, setAddress] = useState("");
   const [active, setActive] = useState(true);
   const [logoUri, setLogoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<BoutiqueCategorie[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    boutiqueCategorieService.getAll()
+      .then((items) => {
+        if (!active) return;
+        setCategories(items);
+        setCategoriesError(false);
+        if (!isEditing && items.length) setCategory((current) => current || items[0].nom);
+      })
+      .catch(() => { if (active) setCategoriesError(true); })
+      .finally(() => { if (active) setCategoriesLoading(false); });
+    return () => { active = false; };
+  }, [isEditing]);
 
   useEffect(() => {
     if (isEditing && existingStore) {
@@ -46,6 +57,7 @@ export default function ShopFormScreen() {
       setDescription(existingStore.description ?? "");
       setCategory(existingStore.category ?? "");
       setLocation(existingStore.location ?? "");
+      setAddress(existingStore.address ?? "");
       setActive(existingStore.active ?? true);
       if (existingStore.logo) setLogoUri(existingStore.logo);
     }
@@ -66,7 +78,7 @@ export default function ShopFormScreen() {
   const handleSubmit = async () => {
     if (!nom.trim()) { Alert.alert("Erreur", "Le nom est requis."); return; }
     if (!category) { Alert.alert("Erreur", "Sélectionnez une catégorie."); return; }
-    if (!location.trim()) { Alert.alert("Erreur", "La localisation est requise."); return; }
+    if (!address.trim()) { Alert.alert("Erreur", "L’adresse est requise."); return; }
 
     setLoading(true);
     try {
@@ -75,6 +87,7 @@ export default function ShopFormScreen() {
       fd.append("description", description);
       fd.append("category", category);
       fd.append("location", location);
+      fd.append("address", address);
       fd.append("active", String(active));
 
       if (logoUri && logoUri.startsWith("file://")) {
@@ -94,11 +107,23 @@ export default function ShopFormScreen() {
       }
 
       await refreshStores();
+      showToast(isEditing ? "Votre boutique a été mise à jour." : "Votre boutique a été créée.");
       router.push("/seller/shop");
     } catch {
       Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const capturePosition = async () => {
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) { Alert.alert("Autorisation requise", "Autorisez l’accès à votre position pour la renseigner."); return; }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setLocation(`https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`);
+    } catch {
+      Alert.alert("Position indisponible", "Collez un lien Google Maps ou réessayez.");
     }
   };
 
@@ -157,25 +182,43 @@ export default function ShopFormScreen() {
 
           {/* Catégorie */}
           <Text style={styles.label}>Catégorie *</Text>
+          {categoriesLoading ? <ActivityIndicator color={Palette.primary[500]} style={styles.categoryLoading} /> : null}
+          {categoriesError ? <Text style={styles.categoryError}>Impossible de charger les catégories. Vérifiez votre connexion puis réessayez.</Text> : null}
           <View style={styles.catGrid}>
-            {CATEGORIES.map((cat) => (
+            {categories.map(({ id, nom }) => (
               <Chip
-                key={cat}
-                label={cat}
-                selected={category === cat}
-                onPress={() => setCategory(cat)}
+                key={id}
+                label={nom}
+                selected={category === nom}
+                onPress={() => setCategory(nom)}
               />
             ))}
           </View>
+          {!categoriesLoading && !categoriesError && categories.length === 0 ? <Text style={styles.categoryError}>Aucune catégorie disponible pour le moment.</Text> : null}
 
-          {/* Localisation */}
+          {/* Adresse */}
           <View style={styles.field}>
             <Input
-              label="Localisation *"
+              label="Adresse *"
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Rue, quartier, ville"
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Input
+              label="Localisation (facultative)"
               value={location}
               onChangeText={setLocation}
-              placeholder="ex: Dakar Central"
+              placeholder="Collez un lien Google Maps"
+              autoCapitalize="none"
+              keyboardType="url"
             />
+            <TouchableOpacity style={styles.locationButton} onPress={capturePosition}>
+              <Ionicons name="navigate-outline" size={16} color={Palette.primary[500]} />
+              <Text style={styles.locationButtonText}>Utiliser ma position actuelle</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Statut actif */}
@@ -208,7 +251,8 @@ export default function ShopFormScreen() {
             title={isEditing ? "Mettre à jour" : "Créer la boutique"}
             icon="storefront-outline"
             onPress={handleSubmit}
-            loading={loading}
+            loading={loading || categoriesLoading}
+            disabled={loading || categoriesLoading || categories.length === 0}
             style={styles.submitBtn}
           />
         </View>
@@ -236,6 +280,10 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.danger.base, alignItems: "center", justifyContent: "center", ...Shadows.sm,
   },
   catGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two, marginBottom: Spacing.four },
+  categoryLoading: { alignSelf: "flex-start", marginBottom: Spacing.three },
+  categoryError: { color: Palette.danger.base, fontSize: 12, marginBottom: Spacing.three },
+  locationButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: Spacing.two, paddingVertical: Spacing.two },
+  locationButtonText: { color: Palette.primary[500], fontSize: 13, fontWeight: "600" },
   switchRow: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: Spacing.three,
     backgroundColor: Palette.neutral[50], borderRadius: Radius.md,

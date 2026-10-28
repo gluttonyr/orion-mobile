@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useOpportunity } from "@/features/opportunities/hooks";
 import { useAuth } from "@/features/auth/hooks";
+import { useToast } from "@/store/toast-store";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomTabInset, Palette, Spacing, Typography } from "@/constants/theme";
@@ -15,6 +16,7 @@ export default function OpportunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isAuthenticated, isSeller } = useAuth();
+  const { showToast } = useToast();
   const { opportunity: opp, loading } = useOpportunity(Number(id));
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -44,7 +46,7 @@ export default function OpportunityDetailScreen() {
     try {
       await mission.apply(Number(id), "Candidature envoyée depuis l’application Orion.");
       setApplied(true);
-      Alert.alert("Candidature envoyée", "Votre candidature a été transmise.");
+      showToast("Votre candidature a bien été transmise.");
     } catch (error: any) {
       const message = error?.response?.data?.message || "Impossible d’envoyer votre candidature.";
       setApplicationError(Array.isArray(message) ? message.join("\n") : String(message));

@@ -1,156 +1,85 @@
-import { ArrowDownLeft, ArrowUpRight, CreditCard, Plus, Wallet } from 'lucide-react-native';
-import { useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FormField, FormSelect } from '../form';
-import { SectionHeader } from '../ui';
+import { ordersApi } from '@/features/orders/api';
 import { colors, radius, spacing } from '../theme';
-import { transactions as txData, withdrawalMethods as wmData, type WithdrawalMethod } from '../shared';
 
-export function WalletScreen({ onNavigate }: { onNavigate: (screen: 'withdrawal-methods') => void }) {
-  const [showWithdraw, setShowWithdraw] = useState(false);
-  const [methods, setMethods] = useState<WithdrawalMethod[]>(wmData);
+type SellerRemise = {
+  remiseId: number;
+  venteId: number;
+  montant: number;
+  montantBrut: number;
+  commissionMontant: number;
+  commissionPourcentage: number;
+  statut: string;
+  articles: Array<{ nom: string; quantite: number }>;
+};
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Portefeuille</Text>
-        <Text style={styles.subtitle}>Gérez votre solde et vos retraits</Text>
-      </View>
+type SellerWalletData = { disponible: number; bloque: number; rembourse: number; messageVersement: string };
 
-      <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.walletCard}>
-        <View style={styles.walletTop}>
-          <Text style={styles.walletLabel}>SOLDE DISPONIBLE</Text>
-          <Wallet size={20} color="#F7CBD5" />
-        </View>
-        <Text style={styles.walletAmount}>125 400 FCFA</Text>
-        <Text style={styles.walletSubtext}>En attente : 18 500 FCFA</Text>
-        <View style={styles.walletActions}>
-          <Pressable style={styles.walletActionBtn} onPress={() => setShowWithdraw(true)}>
-            <ArrowUpRight size={17} color={colors.burgundy} />
-            <Text style={styles.walletActionText}>Retirer</Text>
-          </Pressable>
-          <Pressable style={styles.walletActionBtnOutline} onPress={() => onNavigate('withdrawal-methods')}>
-            <CreditCard size={17} color="white" />
-            <Text style={styles.walletActionOutlineText}>Moyens de retrait</Text>
-          </Pressable>
-        </View>
-      </LinearGradient>
-
-      <SectionHeader title="Historique des transactions" action="Filtrer" />
-      <View style={styles.txList}>
-        {txData.map((tx) => (
-          <View key={tx.id} style={styles.txRow}>
-            <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? colors.greenSoft : '#FDE8EE' }]}>
-              {tx.type === 'credit' ? <ArrowDownLeft size={17} color={colors.green} /> : <ArrowUpRight size={17} color={colors.error} />}
-            </View>
-            <View style={styles.flex}>
-              <Text style={styles.txLabel}>{tx.label}</Text>
-              <Text style={styles.txDate}>{tx.date}</Text>
-            </View>
-            <Text style={[styles.txAmount, { color: tx.type === 'credit' ? colors.green : colors.error }]}>
-              {tx.type === 'credit' ? '+' : '-'} {tx.amount}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      <WithdrawModal visible={showWithdraw} onClose={() => setShowWithdraw(false)} methods={methods} />
-    </View>
-  );
+export function WalletScreen({ onNavigate: _onNavigate, ordersOnly = false }: { onNavigate?: (screen: 'withdrawal-methods') => void; ordersOnly?: boolean }) {
+  const [wallet, setWallet] = useState<SellerWalletData | null>(null);
+  const [orders, setOrders] = useState<SellerRemise[]>([]);
+  const [qr, setQr] = useState<{ qrDataUrl: string; venteId: number } | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const refresh = () => {
+    setLoading(true);
+    Promise.all([ordersApi.getSellerWallet(), ordersApi.getSellerRemises()])
+      .then(([balance, remises]) => { setWallet(balance); setOrders(remises); setError(''); })
+      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Impossible de charger le portefeuille.'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { refresh(); }, []);
+  const format = (amount: number) => `${Number(amount ?? 0).toLocaleString('fr-FR')} FCFA`;
+  return <View style={styles.content}>
+    <View style={styles.header}><Text style={styles.title}>{ordersOnly ? 'Commandes reçues' : 'Portefeuille'}</Text><Text style={styles.subtitle}>{ordersOnly ? 'Suivez les commandes payées et les remises à confirmer.' : 'Montants issus de vos commandes Orion.'}</Text></View>
+    {!ordersOnly ? <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.walletCard}>
+      <Text style={styles.walletLabel}>SOLDE LIBÉRÉ DANS ORION</Text>
+      <Text style={styles.walletAmount}>{format(wallet?.disponible ?? 0)}</Text>
+      <Text style={styles.walletSubtext}>En attente de remise : {format(wallet?.bloque ?? 0)}</Text>
+      <Text style={styles.walletSubtext}>{wallet?.messageVersement ?? 'Le versement Mobile Money nécessite l’activation des payouts FedaPay.'}</Text>
+    </LinearGradient> : null}
+    {error ? <Text style={styles.error}>{error}</Text> : null}
+    {!ordersOnly ? <View style={styles.sectionRow}><Text style={styles.sectionTitle}>Commandes et remises</Text><Pressable onPress={refresh}><Text style={styles.refresh}>Actualiser</Text></Pressable></View> : <Pressable style={styles.refreshButton} onPress={refresh}><Text style={styles.refresh}>Actualiser les commandes</Text></Pressable>}
+    {qr ? <View style={styles.qrCard}><Text style={styles.orderTitle}>QR pour la commande #{qr.venteId}</Text><Image source={{ uri: qr.qrDataUrl }} style={styles.qrImage} /><Text style={styles.copy}>Présentez ce code au client connecté pour confirmer la remise.</Text><Pressable onPress={() => setQr(null)}><Text style={styles.refresh}>Fermer</Text></Pressable></View> : null}
+    {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 20 }} /> : orders.length === 0 ? <Text style={styles.empty}>Aucune commande payée pour le moment.</Text> : orders.map((order) => <View key={order.remiseId} style={styles.orderCard}>
+      <Text style={styles.orderTitle}>Commande #{order.venteId} · {format(order.montant)}</Text>
+      {order.commissionMontant > 0 ? <Text style={styles.copy}>Montant brut : {format(order.montantBrut)} · Commission {order.commissionPourcentage}% : {format(order.commissionMontant)} · Net vendeur : {format(order.montant)}</Text> : null}
+      <Text style={styles.copy}>{order.articles.map((item) => `${item.nom} × ${item.quantite}`).join(', ')}</Text>
+      <Text style={styles.copy}>{order.statut === 'bloquee' ? 'Payée · fonds bloqués' : order.statut === 'liberee' ? 'Remise confirmée · fonds libérés' : 'Remboursée'}</Text>
+      {order.statut === 'bloquee' ? <Pressable style={styles.button} onPress={async () => {
+        try { const generated = await ordersApi.generateHandoverQr(order.remiseId); setQr({ qrDataUrl: generated.qrDataUrl, venteId: generated.venteId }); }
+        catch (reason) { setError(reason instanceof Error ? reason.message : 'Génération du QR impossible.'); }
+      }}><Text style={styles.buttonText}>Générer le QR de remise</Text></Pressable> : null}
+    </View>)}
+  </View>;
 }
 
-function WithdrawModal({
-  visible,
-  onClose,
-  methods,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  methods: WithdrawalMethod[];
-}) {
-  const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState(methods.find((m) => m.active)?.id || methods[0]?.id || '');
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalSheet}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Nouveau retrait</Text>
-            <Pressable style={styles.closeBtn} onPress={onClose}><Text style={styles.closeX}>✕</Text></Pressable>
-          </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-            <Text style={styles.balanceInfo}>Solde disponible : 125 400 FCFA</Text>
-            <FormField label="Montant à retirer (FCFA)" value={amount} onChangeText={setAmount} placeholder="Ex : 50 000" keyboardType="numeric" />
-            <Text style={styles.label}>Moyen de retrait</Text>
-            <View style={styles.methodList}>
-              {methods.map((method) => {
-                const active = selectedMethod === method.id;
-                return (
-                  <Pressable key={method.id} style={[styles.methodCard, active && styles.methodCardActive]} onPress={() => setSelectedMethod(method.id)}>
-                    <View style={styles.methodInfo}>
-                      <Text style={styles.methodType}>{method.type}</Text>
-                      <Text style={styles.methodDetail}>{method.label} · {method.detail}</Text>
-                    </View>
-                    <View style={[styles.radio, active && styles.radioActive]}>
-                      {active ? <View style={styles.radioInner} /> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Pressable style={styles.saveBtn} onPress={onClose}>
-              <Text style={styles.saveBtnText}>Confirmer le retrait</Text>
-            </Pressable>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
+export function SellerOrdersScreen() {
+  return <WalletScreen ordersOnly />;
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.sm },
+  content: { padding: spacing.md, paddingBottom: 36, gap: spacing.sm },
   header: { marginBottom: spacing.sm },
   title: { color: colors.ink, fontSize: 24, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 13, marginTop: 4 },
-  walletCard: { borderRadius: radius.lg, padding: 22, marginBottom: spacing.lg },
-  walletTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  walletCard: { borderRadius: radius.lg, padding: 22, gap: 8 },
   walletLabel: { color: '#F7CBD5', fontSize: 10, letterSpacing: 1.1, fontWeight: '700' },
-  walletAmount: { color: 'white', fontWeight: '800', fontSize: 28, marginTop: 14 },
-  walletSubtext: { color: '#F7CBD5', fontSize: 12, marginTop: 6 },
-  walletActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  walletActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'white', borderRadius: radius.md, paddingVertical: 14 },
-  walletActionText: { color: colors.burgundy, fontSize: 13, fontWeight: '800' },
-  walletActionBtnOutline: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', borderRadius: radius.md, paddingVertical: 14 },
-  walletActionOutlineText: { color: 'white', fontSize: 13, fontWeight: '700' },
-  txList: { gap: 2 },
-  txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
-  txIcon: { width: 38, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  flex: { flex: 1 },
-  txLabel: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  txDate: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  txAmount: { fontSize: 13, fontWeight: '800' },
-  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
-  modalSheet: { backgroundColor: colors.white, borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 20, paddingBottom: 34, maxHeight: '90%' },
-  sheetHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: 20 },
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  sheetTitle: { color: colors.ink, fontSize: 20, fontWeight: '800' },
-  closeBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
-  closeX: { color: colors.ink, fontSize: 14, fontWeight: '700' },
-  balanceInfo: { color: colors.muted, fontSize: 12, marginBottom: 16, backgroundColor: colors.soft, padding: 12, borderRadius: radius.sm },
-  label: { color: colors.ink, fontSize: 13, fontWeight: '700', marginBottom: 10 },
-  methodList: { gap: 10, marginBottom: 20 },
-  methodCard: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: 14 },
-  methodCardActive: { borderColor: colors.burgundy, borderWidth: 1.5 },
-  methodInfo: { flex: 1 },
-  methodType: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  methodDetail: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: colors.line, alignItems: 'center', justifyContent: 'center' },
-  radioActive: { borderColor: colors.burgundy },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.burgundy },
-  saveBtn: { backgroundColor: colors.burgundy, borderRadius: radius.md, paddingVertical: 15, alignItems: 'center' },
-  saveBtnText: { color: 'white', fontSize: 14, fontWeight: '800' },
+  walletAmount: { color: 'white', fontWeight: '800', fontSize: 28, marginTop: 7 },
+  walletSubtext: { color: '#F7CBD5', fontSize: 12 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },
+  sectionTitle: { color: colors.ink, fontSize: 16, fontWeight: '800' },
+  refresh: { color: colors.burgundy, fontSize: 12, fontWeight: '800' },
+  refreshButton: { alignSelf: 'flex-end', paddingVertical: 8 },
+  orderCard: { backgroundColor: colors.white, borderRadius: radius.md, padding: 15, gap: 8, borderWidth: 1, borderColor: colors.line },
+  orderTitle: { color: colors.ink, fontSize: 14, fontWeight: '800' },
+  copy: { color: colors.muted, fontSize: 12 },
+  empty: { color: colors.muted, fontSize: 13, paddingVertical: 20, textAlign: 'center' },
+  qrCard: { alignItems: 'center', backgroundColor: colors.white, borderRadius: radius.md, padding: 16, gap: 8 },
+  qrImage: { width: 240, height: 240 },
+  button: { alignSelf: 'flex-start', backgroundColor: colors.burgundy, borderRadius: radius.sm, paddingHorizontal: 14, paddingVertical: 10 },
+  buttonText: { color: 'white', fontSize: 12, fontWeight: '800' },
+  error: { color: '#A23B42', backgroundColor: '#F9E8E8', padding: 12, borderRadius: radius.sm, fontSize: 12 },
 });

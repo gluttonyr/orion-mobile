@@ -93,6 +93,8 @@ export interface Utilisateur {
   specialite?: string;
   localisation?: string;
   contact?: string;
+  pays?: string;
+  indicatifPays?: string;
   image?: string | null;
 }
 
@@ -101,6 +103,7 @@ export interface produits {
   nom: string;
   description: string;
   prix?: number;
+  prixPromotionnel?: number | null;
   stock?: number;
   image?: string;
   images_secondaires?: string[];
@@ -222,6 +225,7 @@ export interface Vente {
   prix_total?: number;
   reference?: string;
   statut?: string;
+    remises?: Array<{ id: number; commercantId: number; montant: number; montantBrut: number; commissionMontant: number; commissionPourcentage: number; statut: string; articles: Array<{ nom: string; quantite: number }>; dateRemise?: string | null }>;
 }
 
 export interface Panier {
@@ -239,6 +243,7 @@ export interface Boutique {
   description?: string;
   category?: string;
   location?: string;
+  address?: string;
   logo?: string;
   active: boolean;
   nombreProduits?: number;

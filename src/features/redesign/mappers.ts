@@ -1,6 +1,7 @@
 ﻿import type { Boutique, Mission, produits } from '@/model/model';
 import { photos, type Opportunity, type Product, type Store } from '@/components/dashboard/shared';
 import { API_BASE_URL } from '@/service/api.config';
+import { getSellingProductPrice } from '@/features/products/pricing';
 
 export function uploadedImageUrl(value?: string | null): string {
   if (!value) return '';
@@ -21,7 +22,10 @@ export function toDesignProduct(value: produits): Product {
   return {
     id: String(value.id),
     name: value.nom,
-    price: formatFcfa(Number(value.prix ?? 0)),
+    price: formatFcfa(getSellingProductPrice(value)),
+    regularPrice: value.prixPromotionnel != null && getSellingProductPrice(value) < Number(value.prix ?? 0) ? formatFcfa(Number(value.prix ?? 0)) : undefined,
+    promotionalPrice: value.prixPromotionnel == null ? undefined : Number(value.prixPromotionnel),
+    secondaryImagePaths: value.images_secondaires ?? [],
     stock,
     status,
     category: String((value.categorie as any)?.['libell' + String.fromCharCode(233)] ?? 'Divers'),
@@ -39,6 +43,7 @@ export function toDesignStore(value: Boutique): Store {
     name: value.nom,
     category: value.category ?? 'Divers',
     location: value.location ?? '',
+    address: value.address ?? '',
     description: value.description ?? '',
     logo: uploadedImageUrl(value.logo) || photos.store1,
     active: Boolean(value.active),

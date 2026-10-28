@@ -18,8 +18,11 @@ import type { Mission } from '@/model/model';
 import { toDesignOpportunity, toDesignProduct } from '@/features/redesign/mappers';
 import { useStore } from '@/features/seller/boutique-context';
 import { useState, useEffect } from 'react';
+import { useThemeMode } from '@/store/theme-mode';
 
 export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen) => void }) {
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
   const { user } = useAuth();
   const { stores, activeStore } = useStore();
   const { products: backendProducts, loading: productsLoading } = useProducts();
@@ -35,9 +38,9 @@ export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen)
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>{today}</Text>
-          <Text style={styles.title}>Bonjour, {firstName}</Text>
-          <Text style={styles.subtitle}>{activeStore ? `Voici l'activité de ${activeStore.nom} aujourd'hui.` : 'Ajoutez une boutique pour commencer à vendre.'}</Text>
+          <Text style={[styles.eyebrow, dark && darkStyles.muted]}>{today}</Text>
+          <Text style={[styles.title, dark && darkStyles.text]}>Bonjour, {firstName}</Text>
+          <Text style={[styles.subtitle, dark && darkStyles.muted]}>{activeStore ? `Voici l'activité de ${activeStore.nom} aujourd'hui.` : 'Ajoutez une boutique pour commencer à vendre.'}</Text>
         </View>
         <Pressable style={styles.createBtn} onPress={() => onNavigate('products')}>
           <Plus size={20} color="white" strokeWidth={2.4} />
@@ -51,10 +54,10 @@ export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen)
           { label: 'Opportunités', value: missionsLoading ? '…' : String(missions.length) },
           { label: 'Ventes', value: 'Indisponible' },
         ].map((kpi) => (
-          <View key={kpi.label} style={styles.kpiCard}>
-            <Text style={styles.kpiLabel}>{kpi.label}</Text>
-            <Text style={styles.kpiValue}>{kpi.value}</Text>
-            <Text style={styles.kpiDelta}>Données du compte</Text>
+          <View key={kpi.label} style={[styles.kpiCard, dark && darkStyles.card]}>
+            <Text style={[styles.kpiLabel, dark && darkStyles.muted]}>{kpi.label}</Text>
+            <Text style={[styles.kpiValue, dark && darkStyles.text]}>{kpi.value}</Text>
+            <Text style={[styles.kpiDelta, dark && darkStyles.muted]}>Données du compte</Text>
           </View>
         ))}
       </View>
@@ -85,7 +88,7 @@ export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen)
               <View style={styles.quickIcon}>
                 <Icon size={20} color={colors.burgundy} strokeWidth={1.8} />
               </View>
-              <Text style={styles.quickLabel}>{item.label}</Text>
+              <Text style={[styles.quickLabel, dark && darkStyles.text]}>{item.label}</Text>
             </Pressable>
           );
         })}
@@ -96,19 +99,19 @@ export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen)
         {displayProducts.slice(0, 4).map((product) => (
           <Pressable key={product.id} style={styles.productMini} onPress={() => onNavigate('products')}>
             <View style={styles.productMiniImage}>
-              <Text style={styles.productMiniPrice}>{product.price}</Text>
+            <Text style={[styles.productMiniPrice, dark && darkStyles.text]}>{product.price}</Text>
             </View>
-            <Text style={styles.productMiniName} numberOfLines={1}>{product.name}</Text>
-            <Text style={styles.productMiniStock}>Stock : {product.stock}</Text>
+            <Text style={[styles.productMiniName, dark && darkStyles.text]} numberOfLines={1}>{product.name}</Text>
+            <Text style={[styles.productMiniStock, dark && darkStyles.muted]}>Stock : {product.stock}</Text>
           </Pressable>
         ))}
       </ScrollView>
 
       <SectionHeader title="Ventes du mois" action="Analyses" onAction={() => onNavigate('analytics')} />
-      <View style={styles.salesCard}>
+      <View style={[styles.salesCard, dark && darkStyles.card]}>
         <View>
-          <Text style={styles.mutedLabel}>Ventes totales</Text>
-          <Text style={styles.salesAmount}>Données indisponibles</Text>
+          <Text style={[styles.mutedLabel, dark && darkStyles.muted]}>Ventes totales</Text>
+          <Text style={[styles.salesAmount, dark && darkStyles.text]}>Données indisponibles</Text>
           <Text style={styles.positive}>Le service de ventes n'est pas connecté.</Text>
         </View>
       </View>
@@ -116,17 +119,17 @@ export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen)
       <SectionHeader title="Opportunités récentes" action="Voir tout" onAction={() => onNavigate('opportunities')} />
       <View style={styles.oppList}>
         {displayOpportunities.slice(0, 2).map((opp) => (
-          <Pressable key={opp.id} style={styles.oppCard} onPress={() => onNavigate('opportunities')}>
+          <Pressable key={opp.id} style={[styles.oppCard, dark && darkStyles.row]} onPress={() => onNavigate('opportunities')}>
             <View style={styles.oppIcon}>
               <Briefcase size={18} color={colors.burgundy} />
             </View>
             <View style={styles.flex}>
-              <Text style={styles.oppTitle}>{opp.title}</Text>
-              <Text style={styles.oppMeta}>{opp.type} · {opp.location}</Text>
+              <Text style={[styles.oppTitle, dark && darkStyles.text]}>{opp.title}</Text>
+              <Text style={[styles.oppMeta, dark && darkStyles.muted]}>{opp.type} · {opp.location}</Text>
             </View>
             <View style={styles.alignEnd}>
-              <Text style={styles.oppBudget}>{opp.budget}</Text>
-              <Text style={styles.oppCandidates}>{opp.candidates} candidats</Text>
+              <Text style={[styles.oppBudget, dark && darkStyles.text]}>{opp.budget}</Text>
+              <Text style={[styles.oppCandidates, dark && darkStyles.muted]}>{opp.candidates} candidats</Text>
             </View>
           </Pressable>
         ))}
@@ -218,4 +221,11 @@ const styles = StyleSheet.create({
   orderLabel: { color: colors.muted, fontSize: 10, marginTop: 3 },
   orderAmount: { color: colors.ink, fontSize: 11, fontWeight: '700' },
   confirmed: { color: colors.green, fontSize: 9, marginTop: 4, fontWeight: '700' },
+});
+
+const darkStyles = StyleSheet.create({
+  card: { backgroundColor: '#1D1F26', borderColor: '#343640' },
+  row: { borderBottomColor: '#343640' },
+  text: { color: '#F0EDF0' },
+  muted: { color: '#B6B3BC' },
 });

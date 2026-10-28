@@ -5,14 +5,21 @@ import type { Vente } from "./types";
 export function useMyOrders() {
   const [orders, setOrders] = useState<Vente[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    ordersApi
-      .getAll()
+  const refresh = () => {
+    setLoading(true);
+    setError(null);
+    ordersApi.getAll()
       .then(setOrders)
-      .catch(() => setOrders([]))
+      .catch((reason: unknown) => {
+        setOrders([]);
+        setError(reason instanceof Error ? reason.message : 'Impossible de charger vos commandes.');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  };
 
-  return { orders, loading };
+  useEffect(() => { refresh(); }, []);
+
+  return { orders, loading, error, refresh };
 }

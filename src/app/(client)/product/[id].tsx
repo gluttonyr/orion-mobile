@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomTabInset, Palette, Radius, Shadows, Spacing, Typography } from "@/constants/theme";
 import { formatCurrency } from "@/lib/format";
+import { getSellingProductPrice } from "@/features/products/pricing";
 import { Button, Chip } from "@/components/ui";
 
 export default function ProductDetailScreen() {
@@ -28,7 +29,7 @@ export default function ProductDetailScreen() {
       addToCart({
         id: product.id.toString(),
         name: product.nom,
-        price: product.prix ?? 0,
+        price: getSellingProductPrice(product),
         image: getBoutiqueImageUrl(product.image ?? ""),
         seller: product.categorie?.libellé ?? "Vendeur",
       });
@@ -86,7 +87,8 @@ export default function ProductDetailScreen() {
 
           <View style={styles.priceRow}>
             <View>
-              <Text style={styles.price}>{formatCurrency(product.prix ?? 0)}</Text>
+              <Text style={styles.price}>{formatCurrency(getSellingProductPrice(product))}</Text>
+              {product.prixPromotionnel != null ? <Text style={styles.originalPrice}>{formatCurrency(Number(product.prix ?? 0))}</Text> : null}
               <Text style={styles.priceLabel}>Prix unitaire</Text>
             </View>
             <Chip
@@ -115,7 +117,7 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
               <View style={styles.totalBox}>
                 <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>{formatCurrency((product.prix ?? 0) * quantity)}</Text>
+                <Text style={styles.totalValue}>{formatCurrency(getSellingProductPrice(product) * quantity)}</Text>
               </View>
             </View>
           </View>
@@ -158,6 +160,7 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingTop: Spacing.four, borderTopWidth: 1, borderTopColor: Palette.border, marginBottom: Spacing.five },
   price: { fontSize: 28, fontWeight: "800", color: Palette.primary[500] },
   priceLabel: { fontSize: 12, color: Palette.textSecondary, marginTop: 2 },
+  originalPrice: { fontSize: 13, color: Palette.textMuted, textDecorationLine: "line-through", marginTop: 2 },
   quantitySection: { marginBottom: Spacing.five },
   quantityLabel: { fontSize: 14, fontWeight: "600", color: Palette.textSecondary, marginBottom: Spacing.three },
   quantityRow: { flexDirection: "row", alignItems: "center", gap: Spacing.three },

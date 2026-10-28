@@ -1,6 +1,7 @@
 import { MapPin, Pencil, Plus, Store as StoreIcon, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Location from 'expo-location';
 import { FormField, FormSelect } from '../form';
 import { EmptyState, RowCard, StatusBadge } from '../ui';
 import { colors, radius, spacing } from '../theme';
@@ -8,6 +9,8 @@ import { type Store } from '../shared';
 import { boutiqueService } from '@/service/boutique.service';
 import { useStore } from '@/features/seller/boutique-context';
 import { toDesignStore } from '@/features/redesign/mappers';
+import { useToast } from '@/store/toast-store';
+import { boutiqueCategorieService } from '@/service/boutique-categorie.service';
 
 export function StoresScreen() {
   const [storeList, setStoreList] = useState<Store[]>([]);
@@ -15,6 +18,7 @@ export function StoresScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const { refreshStores, setActiveStore, stores } = useStore();
+  const { showToast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingStore, setEditingStore] = useState<Store | null>(null);
 
@@ -36,12 +40,13 @@ export function StoresScreen() {
     data.append('description', store.description);
     data.append('category', store.category);
     data.append('location', store.location);
+    data.append('address', store.address ?? '');
     if (store.logo) data.append('logo', store.logo);
     setSaving(true);
     try {
       if (editingStore) await boutiqueService.update(Number(store.id), data);
       else await boutiqueService.create(data);
-      await loadStores(); await refreshStores(); setShowForm(false);
+      await loadStores(); await refreshStores(); setShowForm(false); showToast(editingStore ? 'Votre boutique a été modifiée.' : 'Votre boutique a été créée.');
     } catch (e: any) { Alert.alert('Boutique non enregistrée', e?.response?.data?.message || 'Vérifiez votre connexion puis réessayez.'); }
     finally { setSaving(false); }
   };
@@ -135,16 +140,36 @@ function StoreFormModal({
   const [description, setDescription] = useState(store?.description || '');
   const [category, setCategory] = useState(store?.category || 'Mode');
   const [location, setLocation] = useState(store?.location || '');
+  const [address, setAddress] = useState(store?.address || '');
+  const [categories, setCategories] = useState<string[]>([]);
+  useEffect(() => {
+    boutiqueCategorieService.getAll().then((rows) => {
+      const names = rows.map((row) => row.nom);
+      setCategories(names);
+      setCategory((current) => names.includes(current) ? current : names[0] ?? '');
+    }).catch(() => Alert.alert('Catégories indisponibles', 'Réessayez lorsque la connexion sera rétablie.'));
+  }, []);
   const [logo, setLogo] = useState(store?.logo || 'https://images.pexels.com/photos/36463718/pexels-photo-36463718.jpeg?auto=compress&cs=tinysrgb&h=400&w=400');
+
+  const capturePosition = async () => {
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) { Alert.alert('Autorisation requise', 'Autorisez l’accès à votre position pour la renseigner.'); return; }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setLocation(`https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`);
+    } catch { Alert.alert('Position indisponible', 'Collez un lien Google Maps ou réessayez.'); }
+  };
 
   const handleSave = () => {
     if (!name.trim()) return;
+    if (!address.trim()) { Alert.alert('Adresse requise', 'Renseignez l’adresse de votre boutique.'); return; }
     onSave({
       id: store?.id || '',
       name,
       description,
       category,
-      location: location || 'Lomé, Togo',
+      location,
+      address,
       logo,
       active: store?.active || false,
       products: store?.products || 0,
@@ -164,8 +189,10 @@ function StoreFormModal({
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
             <FormField label="Nom de la boutique" value={name} onChangeText={setName} placeholder="Ex : Koffi Shoes" />
             <FormField label="Description" value={description} onChangeText={setDescription} placeholder="Décrivez votre boutique" multiline />
-            <FormSelect label="Catégorie" value={category} options={['Mode', 'Électronique', 'Beauté', 'Maison', 'Artisanat', 'Alimentation']} onSelect={setCategory} />
-            <FormField label="Localisation" value={location} onChangeText={setLocation} placeholder="Ex : Lomé, Togo" />
+            <FormSelect label="Catégorie" value={category} options={categories} onSelect={setCategory} />
+            <FormField label="Adresse *" value={address} onChangeText={setAddress} placeholder="Rue, quartier, ville" />
+            <FormField label="Localisation (facultative)" value={location} onChangeText={setLocation} placeholder="Collez un lien Google Maps" helper="Vous pouvez aussi utiliser votre position actuelle." />
+            <Pressable style={styles.locationButton} onPress={capturePosition}><MapPin size={15} color={colors.burgundy} /><Text style={styles.locationButtonText}>Utiliser ma position actuelle</Text></Pressable>
             <FormField label="URL du logo" value={logo} onChangeText={setLogo} placeholder="https://..." helper="Lien vers une image carrée" />
             <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
               {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>{store ? 'Enregistrer' : 'Créer la boutique'}</Text>}
@@ -206,5 +233,7 @@ const styles = StyleSheet.create({
   closeX: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   saveBtn: { backgroundColor: colors.burgundy, borderRadius: radius.md, paddingVertical: 15, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: 'white', fontSize: 14, fontWeight: '800' },
+  locationButton: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 9 },
+  locationButtonText: { color: colors.burgundy, fontSize: 12, fontWeight: '700' },
   error: { color: colors.error, padding: 12 },
 });

@@ -11,6 +11,7 @@ interface ProductCardProps {
   title: string;
   category?: string;
   price: number;
+  originalPrice?: number | null;
   badge?: { label: string; tone?: ChipTone };
   onPress?: () => void;
   onAddToCart?: () => void;
@@ -25,6 +26,7 @@ export function ProductCard({
   title,
   category,
   price,
+  originalPrice,
   badge,
   onPress,
   onAddToCart,
@@ -39,6 +41,7 @@ export function ProductCard({
         {badge && (
           <Chip label={badge.label} tone={badge.tone ?? 'primary'} size="sm" style={styles.badge} />
         )}
+        {originalPrice != null && originalPrice > price ? <Chip label="PROMO" tone="warning" size="sm" style={styles.discountBadge} /> : null}
       </View>
 
       <View style={styles.info}>
@@ -47,7 +50,7 @@ export function ProductCard({
 
         {footer ?? (
           <View style={styles.defaultFooter}>
-            <PriceTag amount={price} size="sm" />
+            <View style={styles.priceRow}><PriceTag amount={price} size="sm" />{originalPrice != null && originalPrice > price ? <PriceTag amount={originalPrice} size="sm" color={Palette.textMuted} style={styles.originalPrice} /> : null}</View>
             {onAddToCart && (
               <AnimatedPressable onPress={onAddToCart} scaleTo={0.9} style={styles.addBtn}>
                 <Ionicons name={addToCartDone ? 'checkmark' : 'add'} size={18} color={Palette.surface} />
@@ -80,6 +83,7 @@ const styles = StyleSheet.create({
     top: 10,
     left: 10,
   },
+  discountBadge: { position: 'absolute', top: 42, left: 10 },
   info: {
     padding: Spacing.three,
     gap: 4,
@@ -102,6 +106,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
   },
+  priceRow: { flex: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+  originalPrice: { fontSize: 10, textDecorationLine: 'line-through' },
   addBtn: {
     width: 32,
     height: 32,

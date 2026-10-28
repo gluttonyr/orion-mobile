@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from './theme';
+import { useThemeMode } from '@/store/theme-mode';
 
 export function SectionHeader({
   title,
@@ -11,9 +12,10 @@ export function SectionHeader({
   action?: string;
   onAction?: () => void;
 }) {
+  const dark = useThemeMode().mode === 'dark';
   return (
     <View style={styles.row}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, dark && darkStyles.text]}>{title}</Text>
       {action ? (
         <Pressable onPress={onAction} hitSlop={8}>
           <Text style={styles.action}>{action}</Text>
@@ -44,10 +46,11 @@ export function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const dark = useThemeMode().mode === 'dark';
   return (
     <View style={styles.empty}>
-      <Text style={styles.emptyTitle}>{title}</Text>
-      <Text style={styles.emptyMessage}>{message}</Text>
+      <Text style={[styles.emptyTitle, dark && darkStyles.text]}>{title}</Text>
+      <Text style={[styles.emptyMessage, dark && darkStyles.muted]}>{message}</Text>
       {actionLabel ? (
         <Pressable style={styles.emptyBtn} onPress={onAction}>
           <Text style={styles.emptyBtnText}>{actionLabel}</Text>
@@ -72,12 +75,13 @@ export function RowCard({
   onPress?: () => void;
   rightLabel?: string;
 }) {
+  const dark = useThemeMode().mode === 'dark';
   return (
-    <Pressable style={styles.rowCard} onPress={onPress} disabled={!onPress}>
+    <Pressable style={[styles.rowCard, dark && darkStyles.card]} onPress={onPress} disabled={!onPress}>
       <View style={styles.rowIcon}>{icon}</View>
       <View style={styles.rowBody}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{title}</Text>
-        {subtitle ? <Text style={styles.rowSubtitle} numberOfLines={1}>{subtitle}</Text> : null}
+        <Text style={[styles.rowTitle, dark && darkStyles.text]} numberOfLines={1}>{title}</Text>
+        {subtitle ? <Text style={[styles.rowSubtitle, dark && darkStyles.muted]} numberOfLines={1}>{subtitle}</Text> : null}
       </View>
       {right ? right : rightLabel ? <Text style={styles.rowRight}>{rightLabel}</Text> : null}
       {onPress ? <ChevronRight size={18} color={colors.muted} /> : null}
@@ -157,4 +161,10 @@ const styles = StyleSheet.create({
   rowTitle: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   rowSubtitle: { color: colors.muted, fontSize: 11, marginTop: 3 },
   rowRight: { color: colors.ink, fontSize: 12, fontWeight: '700', marginRight: 8 },
+});
+
+const darkStyles = StyleSheet.create({
+  card: { backgroundColor: '#1D1F26', borderColor: '#343640' },
+  text: { color: '#F0EDF0' },
+  muted: { color: '#B6B3BC' },
 });

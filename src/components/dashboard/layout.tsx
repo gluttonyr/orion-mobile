@@ -1,5 +1,6 @@
 ﻿import {
   BarChart3,
+  Bell,
   Briefcase,
   CreditCard,
   Home,
@@ -8,12 +9,16 @@
   Menu,
   MessageCircle,
   Package,
+  ShoppingCart,
   Store as StoreIcon,
   UserRound,
   Wallet,
+  Settings2,
+  Tags,
   X,
 } from 'lucide-react-native';
 import { useState } from 'react';
+import { useEffect } from 'react';
 import {
   Dimensions,
   Image,
@@ -29,8 +34,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radius, spacing } from './theme';
 import { photos, type Store, type DashboardScreen } from './shared';
 import { useStore } from '@/features/seller/boutique-context';
+import { useAuth } from '@/features/auth/hooks';
 import { uploadedImageUrl } from '@/features/redesign/mappers';
 import { LiveAvatar } from '@/components/LiveAvatar';
+import { notificationsService, type OrionNotification } from '@/features/orders/api';
+import { ThemeModeButton, useThemeMode } from '@/store/theme-mode';
 
 type NavItem = {
   key: DashboardScreen;
@@ -42,6 +50,7 @@ const navItems: NavItem[] = [
   { key: 'home', label: 'Tableau de bord', icon: Home },
   { key: 'stores', label: 'Mes boutiques', icon: StoreIcon },
   { key: 'products', label: 'Mes produits', icon: Package },
+  { key: 'orders', label: 'Commandes reçues', icon: ShoppingCart },
   { key: 'marketplace', label: 'Marketplace', icon: LayoutGrid },
   { key: 'wallet', label: 'Portefeuille', icon: Wallet },
   { key: 'withdrawal-methods', label: 'Moyens de retrait', icon: CreditCard },
@@ -51,21 +60,41 @@ const navItems: NavItem[] = [
   { key: 'messages', label: 'Messages', icon: MessageCircle },
   { key: 'profile', label: 'Profil', icon: UserRound },
 ];
+const clientNavItems: NavItem[] = [
+  { key: 'home', label: 'Mon espace', icon: Home },
+  { key: 'applications', label: 'Mes candidatures', icon: Briefcase },
+  { key: 'orders', label: 'Mes commandes', icon: Package },
+  { key: 'messages', label: 'Messages', icon: MessageCircle },
+  { key: 'profile', label: 'Profil', icon: UserRound },
+];
+const adminNavItems: NavItem[] = [
+  { key: 'admin-users', label: 'Utilisateurs', icon: UserRound },
+  { key: 'admin-orders', label: 'Commandes', icon: ShoppingCart },
+  { key: 'admin-wallet', label: 'Portefeuille plateforme', icon: Wallet },
+  { key: 'admin-settings', label: 'Réglages du site', icon: Settings2 },
+  { key: 'admin-store-categories', label: 'Catégories boutique', icon: Tags },
+];
 
 export function DashboardLayout({
   active,
   onNavigate,
+  onHome,
   onExit,
   children,
 }: {
   active: DashboardScreen;
   onNavigate: (screen: DashboardScreen) => void;
+  onHome: () => void;
   onExit: () => void;
   children: React.ReactNode;
 }) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const [menuOpen, setMenuOpen] = useState(false);
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
+  const { user, isSeller } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const { stores } = useStore();
   const selectedStore = stores.find((store) => store.active) ?? stores[0];
   const activeStore: Store = selectedStore ? {
@@ -91,16 +120,19 @@ export function DashboardLayout({
         setMenuOpen(false);
       }}
       onExit={onExit}
+      onHome={() => { onHome(); setMenuOpen(false); }}
       activeStore={activeStore}
+      isSeller={isSeller}
+      isAdmin={isAdmin}
     />
   );
 
   if (isDesktop) {
     return (
-      <View style={styles.desktopShell}>
-        <View style={styles.sidebar}>{sidebar}</View>
-        <View style={styles.main}>
-          <TopBar activeStore={activeStore} />
+      <View style={[styles.desktopShell, dark && darkStyles.canvas]}>
+        <View style={[styles.sidebar, dark && darkStyles.surface]}>{sidebar}</View>
+        <View style={[styles.main, dark && darkStyles.canvas]}>
+          <TopBar activeStore={activeStore} isSeller={isSeller} isAdmin={isAdmin} displayName={[user?.prenom, user?.nom].filter(Boolean).join(' ') || user?.email || 'Mon espace'} onNavigate={onNavigate} />
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {children}
           </ScrollView>
@@ -111,32 +143,34 @@ export function DashboardLayout({
 
   return (
     <SafeAreaView style={styles.mobileShell}>
-      <View style={styles.mobileTopBar}>
-        <Pressable style={styles.iconBtn} onPress={() => setMenuOpen(true)}>
-          <Menu size={22} color={colors.ink} />
+      <View style={[styles.mobileTopBar, dark && darkStyles.surface]}>
+        <Pressable style={[styles.iconBtn, dark && darkStyles.control]} onPress={() => setMenuOpen(true)}>
+          <Menu size={22} color={dark ? '#F1EDF0' : colors.ink} />
         </Pressable>
         <View style={styles.mobileStore}>
-          <Image source={{ uri: activeStore.logo }} style={styles.mobileStoreLogo} />
+          {isSeller ? <Image source={{ uri: activeStore.logo }} style={styles.mobileStoreLogo} /> : null}
           <View>
-            <Text style={styles.mobileStoreName} numberOfLines={1}>{activeStore.name}</Text>
-            <Text style={styles.mobileStoreCat}>{activeStore.category}</Text>
+            <Text style={[styles.mobileStoreName, dark && darkStyles.text]} numberOfLines={1}>{isSeller ? activeStore.name : 'Mon espace personnel'}</Text>
+            <Text style={[styles.mobileStoreCat, dark && darkStyles.mutedText]}>{isSeller ? activeStore.category : 'Bienvenue sur ORION'}</Text>
           </View>
         </View>
+        <NotificationBell isSeller={isSeller} onOpenOrders={() => onNavigate(isAdmin ? 'admin-orders' : 'orders')} />
+        <ThemeModeButton />
         <Pressable style={styles.iconBtn} onPress={onExit}>
-          <LogOut size={20} color={colors.ink} />
+          <LogOut size={20} color={dark ? '#F1EDF0' : colors.ink} />
         </Pressable>
       </View>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContentMobile} showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.scroll, dark && darkStyles.canvas]} contentContainerStyle={styles.scrollContentMobile} showsVerticalScrollIndicator={false}>
         {children}
       </ScrollView>
       <Modal visible={menuOpen} transparent animationType="slide" onRequestClose={() => setMenuOpen(false)}>
         <View style={styles.overlay}>
           <Pressable style={styles.overlayBackdrop} onPress={() => setMenuOpen(false)} />
-          <View style={styles.drawer}>
+          <View style={[styles.drawer, dark && darkStyles.surface]}>
             <View style={styles.drawerHeader}>
-              <Text style={styles.drawerTitle}>Menu</Text>
-              <Pressable style={styles.iconBtn} onPress={() => setMenuOpen(false)}>
-                <X size={20} color={colors.ink} />
+              <Text style={[styles.drawerTitle, dark && darkStyles.text]}>Menu</Text>
+              <Pressable style={[styles.iconBtn, dark && darkStyles.control]} onPress={() => setMenuOpen(false)}>
+                <X size={20} color={dark ? '#E8E6E2' : colors.ink} />
               </Pressable>
             </View>
             {sidebar}
@@ -151,34 +185,43 @@ function SidebarContent({
   active,
   onNavigate,
   onExit,
+  onHome,
   activeStore,
+  isSeller,
+  isAdmin,
 }: {
   active: DashboardScreen;
   onNavigate: (s: DashboardScreen) => void;
   onExit: () => void;
+  onHome: () => void;
   activeStore: Store;
+  isSeller: boolean;
+  isAdmin: boolean;
 }) {
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
+  const visibleNavItems = isAdmin ? adminNavItems : isSeller ? navItems : clientNavItems;
   return (
     <View style={styles.sidebarInner}>
       <View style={styles.sidebarHeader}>
-        <View style={styles.logoWrap}>
+        <Pressable style={styles.logoWrap} onPress={onHome} accessibilityRole="button" accessibilityLabel="Retour à l’accueil Orion">
           <Text style={styles.logoOro}>ORO</Text>
           <Text style={styles.logoOrion}>ORION</Text>
-        </View>
-        <Text style={styles.logoTagline}>Espace commerçant</Text>
+        </Pressable>
+        <Text style={[styles.logoTagline, dark && darkStyles.mutedText]}>{isAdmin ? 'Administration' : isSeller ? 'Espace commerçant' : 'Espace personnel'}</Text>
       </View>
 
-      <View style={styles.storeCard}>
+      {isSeller ? <View style={[styles.storeCard, dark && darkStyles.control]}>
         <Image source={{ uri: activeStore.logo }} style={styles.storeLogo} />
         <View style={styles.storeInfo}>
-          <Text style={styles.storeName} numberOfLines={1}>{activeStore.name}</Text>
-          <Text style={styles.storeMeta}>{activeStore.category} · {activeStore.location}</Text>
+          <Text style={[styles.storeName, dark && darkStyles.text]} numberOfLines={1}>{activeStore.name}</Text>
+          <Text style={[styles.storeMeta, dark && darkStyles.mutedText]}>{activeStore.category} · {activeStore.location}</Text>
         </View>
         <View style={styles.activeDot} />
-      </View>
+      </View> : null}
 
       <ScrollView style={styles.navScroll} showsVerticalScrollIndicator={false}>
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.key;
           return (
@@ -187,42 +230,91 @@ function SidebarContent({
               style={[styles.navItem, isActive && styles.navItemActive]}
               onPress={() => onNavigate(item.key)}
             >
-              <Icon size={20} color={isActive ? colors.burgundy : colors.muted} strokeWidth={isActive ? 2.4 : 1.8} />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>{item.label}</Text>
+              <Icon size={20} color={isActive ? colors.burgundy : dark ? '#B6B3BC' : colors.muted} strokeWidth={isActive ? 2.4 : 1.8} />
+              <Text style={[styles.navLabel, dark && darkStyles.text, isActive && styles.navLabelActive, dark && isActive && darkStyles.activeLabel]}>{item.label}</Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
       <Pressable style={styles.logoutBtn} onPress={onExit}>
-        <LogOut size={19} color={colors.muted} />
-        <Text style={styles.logoutText}>Déconnexion</Text>
+        <LogOut size={19} color={dark ? '#B6B3BC' : colors.muted} />
+        <Text style={[styles.logoutText, dark && darkStyles.mutedText]}>Déconnexion</Text>
       </Pressable>
     </View>
   );
 }
 
-function TopBar({ activeStore }: { activeStore: Store }) {
+function TopBar({ activeStore, isSeller, isAdmin, displayName, onNavigate }: { activeStore: Store; isSeller: boolean; isAdmin: boolean; displayName: string; onNavigate: (screen: DashboardScreen) => void }) {
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
   return (
-    <View style={styles.topBar}>
+    <View style={[styles.topBar, dark && darkStyles.surface]}>
       <View style={styles.topBarStore}>
-        <Image source={{ uri: activeStore.logo }} style={styles.topBarLogo} />
+        {isSeller ? <Image source={{ uri: activeStore.logo }} style={styles.topBarLogo} /> : null}
         <View>
-          <Text style={styles.topBarStoreName}>{activeStore.name}</Text>
-          <Text style={styles.topBarStoreMeta}>Boutique active</Text>
+          <Text style={[styles.topBarStoreName, dark && darkStyles.text]}>{isSeller ? activeStore.name : displayName}</Text>
+          <Text style={[styles.topBarStoreMeta, dark && darkStyles.mutedText]}>{isAdmin ? 'Administration Orion' : isSeller ? 'Boutique active' : 'Espace personnel'}</Text>
         </View>
       </View>
       <View style={styles.topBarRight}>
-        <Pressable style={styles.iconBtn}>
-          <MessageCircle size={20} color={colors.ink} strokeWidth={1.8} />
-          <View style={styles.badgeDot} />
+        <Pressable style={[styles.iconBtn, dark && darkStyles.control]} onPress={() => onNavigate(isAdmin ? 'admin-users' : 'messages')} accessibilityRole="button" accessibilityLabel={isAdmin ? 'Ouvrir les utilisateurs' : 'Ouvrir les messages'}>
+          <MessageCircle size={20} color={dark ? '#E8E6E2' : colors.ink} strokeWidth={1.8} />
         </Pressable>
-        <Pressable style={styles.iconBtn}>
+        <NotificationBell isSeller={isSeller} onOpenOrders={() => onNavigate(isAdmin ? 'admin-orders' : 'orders')} />
+        <ThemeModeButton />
+        <Pressable style={[styles.iconBtn, dark && darkStyles.control]}>
           <LiveAvatar size={36} />
         </Pressable>
       </View>
     </View>
   );
+}
+
+function NotificationBell({ isSeller, onOpenOrders }: { isSeller: boolean; onOpenOrders: () => void }) {
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
+  const [visible, setVisible] = useState(false);
+  const [items, setItems] = useState<OrionNotification[]>([]);
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    const refresh = async () => {
+      try {
+        const result = await notificationsService.getAll();
+        if (mounted) {
+          setItems(result.items);
+          setUnread(result.unreadCount);
+        }
+      } catch {
+        if (mounted) { setItems([]); setUnread(0); }
+      }
+    };
+    void refresh();
+    const timer = setInterval(() => void refresh(), 30000);
+    return () => { mounted = false; clearInterval(timer); };
+  }, [isSeller]);
+  const markAllRead = async () => {
+    try { const result = await notificationsService.markAllRead(); setItems(result.items); setUnread(result.unreadCount); } catch { /* Le prochain rafraîchissement relira le backend. */ }
+  };
+  const openItem = async (item: OrionNotification) => {
+    if (!item.readAt) {
+      try { const result = await notificationsService.markRead(item.id); setItems(result.items); setUnread(result.unreadCount); } catch { /* L’écran des commandes reste accessible. */ }
+    }
+    setVisible(false);
+    onOpenOrders();
+  };
+  return <>
+    <Pressable style={[styles.iconBtn, dark && darkStyles.control]} onPress={() => setVisible(true)} accessibilityRole="button" accessibilityLabel={`Notifications${unread ? `, ${unread} non lues` : ''}`}>
+      <Bell size={20} color={dark ? '#E8E6E2' : colors.ink} strokeWidth={1.8} />{unread ? <View style={styles.badgeDot} /> : null}
+    </Pressable>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
+      <View style={styles.notificationOverlay}><Pressable style={styles.notificationBackdrop} onPress={() => setVisible(false)} /><View style={[styles.notificationSheet, dark && darkStyles.surface]}>
+        <View style={[styles.notificationHeader, dark && darkStyles.surface]}><Text style={[styles.notificationTitle, dark && darkStyles.text]}>Notifications{unread ? ` (${unread})` : ''}</Text><Pressable onPress={() => void markAllRead()} disabled={!unread}><Text style={[styles.notificationReadAll, !unread && styles.notificationReadDisabled]}>Tout lire</Text></Pressable></View>
+        <ScrollView>{items.length ? items.map((item) => <Pressable key={item.id} style={[styles.notificationRow, item.readAt && styles.notificationRowRead, dark && darkStyles.control]} onPress={() => void openItem(item)}><View style={styles.notificationIcon}><Package size={16} color={colors.burgundy} /></View><View style={styles.notificationCopy}><Text style={[styles.notificationItemTitle, dark && darkStyles.text]}>{item.title}</Text><Text style={[styles.notificationMessage, dark && darkStyles.mutedText]}>{item.message}</Text><Text style={[styles.notificationDate, dark && darkStyles.mutedText]}>{item.createdAt ? new Date(item.createdAt).toLocaleString('fr-FR') : 'Récemment'}</Text></View></Pressable>) : <Text style={[styles.notificationEmpty, dark && darkStyles.mutedText]}>Aucune notification pour le moment.</Text>}</ScrollView>
+      </View></View>
+    </Modal>
+  </>;
 }
 
 const styles = StyleSheet.create({
@@ -312,6 +404,21 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.white,
   },
+  notificationOverlay: { flex: 1, justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 80, paddingHorizontal: 18, backgroundColor: 'rgba(24,16,16,0.28)' },
+  notificationBackdrop: { ...StyleSheet.absoluteFill },
+  notificationSheet: { width: 350, maxWidth: '100%', maxHeight: '72%', backgroundColor: colors.white, borderRadius: 16, overflow: 'hidden', elevation: 8 },
+  notificationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.line },
+  notificationTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  notificationReadAll: { color: colors.burgundy, fontSize: 12, fontWeight: '700' },
+  notificationReadDisabled: { color: colors.muted },
+  notificationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 15, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.line, backgroundColor: '#FFF9F7' },
+  notificationRowRead: { backgroundColor: colors.white },
+  notificationIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: colors.burgundySoft, alignItems: 'center', justifyContent: 'center' },
+  notificationCopy: { flex: 1, gap: 3 },
+  notificationItemTitle: { color: colors.ink, fontSize: 12, fontWeight: '800' },
+  notificationMessage: { color: colors.muted, fontSize: 11 },
+  notificationDate: { color: '#A69A92', fontSize: 10, marginTop: 2 },
+  notificationEmpty: { color: colors.muted, fontSize: 12, textAlign: 'center', padding: 26 },
   avatar: {
     width: 36,
     height: 36,
@@ -353,5 +460,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   drawerTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },
+});
+
+const darkStyles = StyleSheet.create({
+  canvas: { backgroundColor: '#15161B' },
+  surface: { backgroundColor: '#1D1F26', borderColor: '#343640', borderRightColor: '#343640', borderBottomColor: '#343640' },
+  control: { backgroundColor: '#30313A', borderColor: '#41434D' },
+  text: { color: '#E8E6E2' },
+  mutedText: { color: '#B6B3BC' },
+  activeLabel: { color: '#F0A9BD' },
 });
 

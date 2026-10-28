@@ -14,6 +14,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Palette, Radius, Shadows, Spacing, Typography, BottomTabInset } from "@/constants/theme";
 import { formatCurrency } from "@/lib/format";
 import { Button, Chip, EmptyState, PriceTag, ProductCard, StatTile, type ChipTone } from "@/components/ui";
+import { getSellingProductPrice } from "@/features/products/pricing";
 
 function statutTone(statut?: string): ChipTone {
   if (statut === "En stock") return "success";
@@ -33,7 +34,7 @@ export default function SellerProductsScreen() {
     .filter((p) => !deletedIds.includes(p.id))
     .filter((p) => p.nom.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  const totalValue = filtered.reduce((sum, p) => sum + (p.prix ?? 0) * (p.stock ?? 0), 0);
+  const totalValue = filtered.reduce((sum, p) => sum + getSellingProductPrice(p) * (p.stock ?? 0), 0);
   const lowStock = filtered.filter((p) => (p.stock ?? 0) < 10).length;
 
   const handleDelete = (id: number) => {
@@ -110,12 +111,13 @@ export default function SellerProductsScreen() {
                 imageUri={product.image ? getBoutiqueImageUrl(product.image) : ""}
                 title={product.nom}
                 category={product.description}
-                price={product.prix ?? 0}
+                price={getSellingProductPrice(product)}
+                originalPrice={product.prixPromotionnel != null ? Number(product.prix ?? 0) : undefined}
                 style={styles.gridItem}
                 footer={
                   <View>
                     <View style={styles.footerTopRow}>
-                      <PriceTag amount={product.prix ?? 0} size="sm" />
+                      <View><PriceTag amount={getSellingProductPrice(product)} size="sm" />{product.prixPromotionnel != null ? <Text style={styles.originalPrice}>{formatCurrency(Number(product.prix ?? 0))}</Text> : null}</View>
                       <Chip
                         label={`${product.stock ?? 0} u.`}
                         tone={(product.stock ?? 0) < 10 ? "warning" : "neutral"}
@@ -152,6 +154,7 @@ export default function SellerProductsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Palette.background },
+  originalPrice: { fontSize: 10, color: Palette.textMuted, textDecorationLine: "line-through" },
   addRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: Spacing.four, paddingVertical: Spacing.four },
   storeLabel: { fontSize: 14, fontWeight: "600", color: Palette.text },
   countLabel: { fontSize: 12, color: Palette.textSecondary, marginTop: 2 },

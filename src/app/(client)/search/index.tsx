@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomTabInset, Palette, Radius, Spacing, Typography } from "@/constants/theme";
 import { Chip, EmptyState, Input, ProductCard } from "@/components/ui";
 import { formatCurrency } from "@/lib/format";
+import { getSellingProductPrice } from "@/features/products/pricing";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -28,8 +29,8 @@ export default function SearchScreen() {
       return matchSearch && matchCat;
     })
     .sort((a, b) => {
-      if (sortBy === "price-asc") return (a.prix ?? 0) - (b.prix ?? 0);
-      if (sortBy === "price-desc") return (b.prix ?? 0) - (a.prix ?? 0);
+      if (sortBy === "price-asc") return getSellingProductPrice(a) - getSellingProductPrice(b);
+      if (sortBy === "price-desc") return getSellingProductPrice(b) - getSellingProductPrice(a);
       return 0;
     });
 
@@ -110,13 +111,15 @@ export default function SearchScreen() {
                 imageUri={product.image ? getBoutiqueImageUrl(product.image) : "https://via.placeholder.com/200"}
                 title={product.nom}
                 category={product.categorie?.libellé}
-                price={product.prix ?? 0}
+                price={getSellingProductPrice(product)}
+                originalPrice={product.prixPromotionnel != null ? Number(product.prix ?? 0) : undefined}
                 badge={product.statut === "Stock limité" ? { label: "Stock limité", tone: "warning" } : undefined}
                 onPress={() => router.push(`/product/${product.id}` as any)}
                 style={styles.card}
                 footer={
                   <View style={styles.cardFooter}>
-                    <Text style={styles.cardPrice}>{formatCurrency(product.prix ?? 0)}</Text>
+                    <Text style={styles.cardPrice}>{formatCurrency(getSellingProductPrice(product))}</Text>
+                    {product.prixPromotionnel != null ? <Text style={styles.originalPrice}>{formatCurrency(Number(product.prix ?? 0))}</Text> : null}
                     <Text style={styles.cardStock}>{product.stock} en stock</Text>
                   </View>
                 }
@@ -143,5 +146,6 @@ const styles = StyleSheet.create({
   card: { width: "47%" },
   cardFooter: { marginTop: 4 },
   cardPrice: { fontSize: Typography.subtitle.fontSize, fontWeight: "800", color: Palette.primary[500] },
+  originalPrice: { fontSize: 11, color: Palette.textMuted, textDecorationLine: "line-through" },
   cardStock: { fontSize: 11, color: Palette.textSecondary, marginTop: 2 },
 });

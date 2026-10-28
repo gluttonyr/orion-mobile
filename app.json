@@ -40,7 +40,11 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-location",
+        { "locationWhenInUsePermission": "Autorisez Orion à utiliser votre position pour localiser votre boutique." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

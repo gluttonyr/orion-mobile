@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { BottomTabInset, Palette, Radius, Shadows, Spacing, Typography } from "@/constants/theme";
 import { Button, Card, Chip, ProductCard, SectionHeader } from "@/components/ui";
+import { getSellingProductPrice } from "@/features/products/pricing";
 
 const BANNERS = [
   {
@@ -62,7 +63,7 @@ export default function HomeScreen() {
     addToCart({
       id: product.id.toString(),
       name: product.nom,
-      price: product.prix ?? 0,
+      price: getSellingProductPrice(product),
       image: getBoutiqueImageUrl(product.image ?? ""),
       seller: product.categorie?.libellé ?? "Vendeur",
     });
@@ -164,7 +165,8 @@ export default function HomeScreen() {
                   imageUri={getBoutiqueImageUrl(product.image ?? "") || "https://via.placeholder.com/200"}
                   title={product.nom}
                   category={product.categorie?.libellé ?? "Autre"}
-                  price={product.prix ?? 0}
+                  price={getSellingProductPrice(product)}
+                  originalPrice={product.prixPromotionnel != null ? Number(product.prix ?? 0) : undefined}
                   badge={product.stock != null && product.stock <= 5 ? { label: "Stock limité", tone: "warning" } : undefined}
                   onPress={() => router.push(`/product/${product.id}` as any)}
                   onAddToCart={() => handleAddToCart(product)}

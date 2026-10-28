@@ -11,13 +11,21 @@ export type DashboardScreen =
   | 'opportunities'
   | 'subscriptions'
   | 'messages'
-  | 'profile';
+  | 'orders'
+  | 'applications'
+  | 'profile'
+  | 'admin-users'
+  | 'admin-orders'
+  | 'admin-wallet'
+  | 'admin-settings'
+  | 'admin-store-categories';
 
 export type Store = {
   id: string;
   name: string;
   category: string;
   location: string;
+  address?: string;
   description: string;
   logo: string;
   active: boolean;
@@ -29,6 +37,9 @@ export type Product = {
   id: string;
   name: string;
   price: string;
+  regularPrice?: string;
+  promotionalPrice?: number;
+  secondaryImagePaths?: string[];
   stock: number;
   status: 'Disponible' | 'Rupture de stock' | 'Brouillon' | 'Actif' | 'Rupture';
   category: string;

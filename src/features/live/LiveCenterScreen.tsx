@@ -10,6 +10,7 @@ import { formatFcfa, uploadedImageUrl } from '@/features/redesign/mappers';
 import { produitService } from '@/service/produit.service';
 import { boutiqueService } from '@/service/boutique.service';
 import { UserRole, type Boutique, type produits } from '@/model/model';
+import { getSellingProductPrice } from '@/features/products/pricing';
 
 const colors = { ink: '#171717', muted: '#737373', line: '#E9E9EC', burgundy: '#8B0A24', soft: '#F9E9ED', navy: '#07121E', white: '#FFFFFF', green: '#147A57' };
 const webUrl = (process.env.EXPO_PUBLIC_WEB_URL ?? '').replace(/\/$/, '');
@@ -116,7 +117,7 @@ export function LiveCenterScreen({ onCreateClip, onOpenProfile }: { onCreateClip
     {!webUrl ? <Text style={styles.configHint}>Configure EXPO_PUBLIC_WEB_URL dans `orion-mobile/.env` pour activer les liens.</Text> : null}
     {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 24 }} /> : loadError ? <Text style={styles.empty}>{loadError}</Text> : products.length === 0 ? <Text style={styles.empty}>Aucun produit créé sur ton compte pour le moment.</Text> : products.map((product) => <View key={product.id} style={styles.productRow}>
       {product.image ? <Image source={{ uri: uploadedImageUrl(product.image) }} style={styles.productImage} /> : <View style={[styles.productImage, styles.imageFallback]}><Package size={22} color={colors.burgundy} /></View>}
-      <View style={styles.productCopy}><Text style={styles.productName} numberOfLines={1}>{product.nom}</Text><Text style={styles.price}>{formatFcfa(Number(product.prix ?? 0))}</Text><Text style={styles.stock}>{Number(product.stock ?? 0) > 0 ? `${product.stock} en stock` : 'Rupture de stock'}</Text></View>
+      <View style={styles.productCopy}><Text style={styles.productName} numberOfLines={1}>{product.nom}</Text><Text style={styles.price}>{formatFcfa(getSellingProductPrice(product))}</Text>{product.prixPromotionnel != null ? <Text style={styles.stock}>{formatFcfa(Number(product.prix ?? 0))}</Text> : null}<Text style={styles.stock}>{Number(product.stock ?? 0) > 0 ? `${product.stock} en stock` : 'Rupture de stock'}</Text></View>
       <Pressable style={[styles.copyButton, (!webUrl || !session || !sessionProductIds.has(product.id)) && styles.disabled]} disabled={!webUrl || !session || !sessionProductIds.has(product.id)} onPress={() => { void copyLink(product); }}><Text style={styles.copyText}>Lien Live</Text></Pressable>
     </View>)}
 

@@ -23,6 +23,7 @@ function toStore(b: Boutique): Boutique {
     description: b.description ?? "",
     category: b.category ?? "",
     location: b.location ?? "",
+    address: b.address ?? "",
     logo: b.logo ? (b.logo.startsWith("/") ? `${API_BASE_URL}${b.logo}` : b.logo) : undefined,
     dateCreation: b.dateCreation ? new Date(b.dateCreation) : null,
     active: b.active ?? true,

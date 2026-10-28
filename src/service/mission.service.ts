@@ -1,6 +1,10 @@
 import { createApi } from "./api.config";
 import type { Mission } from "../model/model";
 
+export type MissionApplication = Mission & {
+  candidature: { userId: number; statut: string; dateCandidature: string | Date; message: string };
+};
+
 const api = createApi("mission");
 
 class MissionService {
@@ -26,6 +30,11 @@ class MissionService {
 
   async getMyApplication(id: number) {
     const res = await api.get(`/${id}/candidatures/me`);
+    return res.data;
+  }
+
+  async getMyApplications(): Promise<MissionApplication[]> {
+    const res = await api.get('/applications/me');
     return res.data;
   }
 

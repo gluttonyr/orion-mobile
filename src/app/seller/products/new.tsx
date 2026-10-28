@@ -13,11 +13,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { Palette, Radius, Shadows, Spacing, BottomTabInset } from "@/constants/theme";
 import { Button, Card, Chip, Input } from "@/components/ui";
+import { useToast } from "@/store/toast-store";
 
 const STATUTS = ["En stock", "Stock limité", "Sur commande", "Rupture de stock"];
 
 export default function ProductFormScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const isEdit = !!id;
   const { getBoutiqueImageUrl } = useImage();
@@ -30,6 +32,10 @@ export default function ProductFormScreen() {
   const [nom, setNom] = useState("");
   const [description, setDescription] = useState("");
   const [prix, setPrix] = useState("");
+  const [prixPromotionnel, setPrixPromotionnel] = useState("");
+  const [secondaryImageUris, setSecondaryImageUris] = useState<string[]>([]);
+  const [existingSecondaryImages, setExistingSecondaryImages] = useState<string[]>([]);
+  const [clearExistingSecondaryImages, setClearExistingSecondaryImages] = useState(false);
   const [stock, setStock] = useState("");
   const [statut, setStatut] = useState("En stock");
   const [selectedCatId, setSelectedCatId] = useState<number | null>(null);
@@ -49,10 +55,13 @@ export default function ProductFormScreen() {
         setNom(data.nom ?? "");
         setDescription(data.description ?? "");
         setPrix(String(data.prix ?? 0));
+        const promo = data.prixPromotionnel == null ? "" : String(data.prixPromotionnel);
+        setPrixPromotionnel(promo);
         setStock(String(data.stock ?? 0));
         setStatut(data.statut ?? "En stock");
         setSelectedCatId(data.categorie?.id ?? null);
         if (data.image) setImageUri(getBoutiqueImageUrl(data.image));
+        setExistingSecondaryImages(data.images_secondaires ?? []);
       })
       .catch(() => Alert.alert("Erreur", "Impossible de charger le produit."))
       .finally(() => setFetchLoading(false));
@@ -69,9 +78,18 @@ export default function ProductFormScreen() {
     }
   };
 
+  const pickSecondaryImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8, allowsMultipleSelection: true, selectionLimit: 3 });
+    if (!result.canceled) setSecondaryImageUris(result.assets.slice(0, 3).map((asset) => asset.uri));
+  };
+
   const handleSubmit = async () => {
     if (!nom.trim()) { Alert.alert("Erreur", "Le nom est requis."); return; }
     if (!prix || isNaN(Number(prix))) { Alert.alert("Erreur", "Entrez un prix valide."); return; }
+    const promo = prixPromotionnel.trim() ? Number(prixPromotionnel) : null;
+    if (promo !== null && (!Number.isSafeInteger(promo) || promo <= 0 || promo >= Number(prix))) {
+      Alert.alert("Prix promotionnel invalide", "Le prix promotionnel doit être un montant entier positif inférieur au prix normal."); return;
+    }
     if (!stock || isNaN(Number(stock))) { Alert.alert("Erreur", "Entrez un stock valide."); return; }
 
     setLoading(true);
@@ -80,6 +98,7 @@ export default function ProductFormScreen() {
         nom,
         description,
         prix: Number(prix),
+        prixPromotionnel: promo,
         stock: Number(stock),
         statut,
         categorie: selectedCatId
@@ -99,10 +118,11 @@ export default function ProductFormScreen() {
       }
 
       if (isEdit && id) {
-        await productsApi.update(Number(id), formData, imageFile as any);
+        await productsApi.update(Number(id), formData, imageFile as any, secondaryImageUris, clearExistingSecondaryImages);
       } else {
-        await productsApi.create(formData, imageFile as any);
+        await productsApi.create(formData, imageFile as any, secondaryImageUris);
       }
+      showToast(isEdit ? "Votre produit a été mis à jour." : "Votre produit a été créé.");
       router.push("/seller/products");
     } catch {
       Alert.alert("Erreur", "Une erreur est survenue. Veuillez réessayer.");
@@ -145,6 +165,13 @@ export default function ProductFormScreen() {
               <Text style={styles.imagePickerSub}>PNG, JPG jusqu'à 5MB</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.secondaryPicker} onPress={() => { void pickSecondaryImages(); setClearExistingSecondaryImages(false); }}>
+            <Ionicons name="images-outline" size={20} color={Palette.primary[500]} />
+            <Text style={styles.secondaryPickerText}>Choisir jusqu’à 3 images secondaires</Text>
+          </TouchableOpacity>
+          {secondaryImageUris.length ? <Text style={styles.promotionHint}>{secondaryImageUris.length} image(s) sélectionnée(s)</Text> : null}
+          {!secondaryImageUris.length && existingSecondaryImages.length ? <Text style={styles.promotionHint}>{existingSecondaryImages.length} image(s) secondaire(s) déjà enregistrée(s)</Text> : null}
+          {existingSecondaryImages.length ? <TouchableOpacity onPress={() => { setExistingSecondaryImages([]); setSecondaryImageUris([]); setClearExistingSecondaryImages(true); }}><Text style={styles.removeSecondaryText}>Supprimer les images secondaires</Text></TouchableOpacity> : null}
         </Card>
 
         {/* Form */}
@@ -192,6 +219,10 @@ export default function ProductFormScreen() {
                 keyboardType="numeric"
               />
             </View>
+          </View>
+
+          <View style={styles.field}>
+            <Input label="Prix promotionnel (XOF)" value={prixPromotionnel} onChangeText={setPrixPromotionnel} placeholder="Facultatif" keyboardType="numeric" />
           </View>
 
           <Text style={styles.label}>Catégorie *</Text>
@@ -250,12 +281,18 @@ const styles = StyleSheet.create({
   textarea: { height: 100, textAlignVertical: "top", paddingTop: 12 },
   row: { flexDirection: "row", gap: Spacing.three },
   halfField: { flex: 1 },
+  promotionToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: Spacing.three, paddingVertical: Spacing.two },
+  promotionCopy: { flex: 1, marginRight: Spacing.three },
+  promotionHint: { fontSize: 12, color: Palette.textMuted, marginTop: 3 },
   imagePicker: {
     borderWidth: 1.5, borderColor: Palette.border, borderStyle: "dashed", borderRadius: Radius.md,
     alignItems: "center", justifyContent: "center", paddingVertical: Spacing.seven, backgroundColor: Palette.neutral[50],
   },
   imagePickerText: { fontSize: 14, color: Palette.textSecondary, fontWeight: "500", marginTop: Spacing.three },
   imagePickerSub: { fontSize: 12, color: Palette.textMuted, marginTop: 4 },
+  secondaryPicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12, marginTop: 14, borderWidth: 1, borderColor: Palette.border, borderRadius: Radius.md },
+  secondaryPickerText: { fontSize: 13, color: Palette.primary[500], fontWeight: '700' },
+  removeSecondaryText: { color: Palette.danger.base, fontSize: 12, fontWeight: '600', textAlign: 'center', marginTop: 9 },
   imageContainer: { position: "relative", alignSelf: "flex-start" },
   previewImage: { width: 140, height: 140, borderRadius: Radius.md, backgroundColor: Palette.neutral[100] },
   removeImageBtn: {

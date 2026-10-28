@@ -10,8 +10,10 @@ import { mission } from '@/service/mission.service';
 import { toDesignOpportunity } from '@/features/redesign/mappers';
 import { StatutMission, TypePaiement, type Mission } from '@/model/model';
 import { checkFedaPayPayment, initMissionPublicationPayment } from '@/service/paiement.service';
+import { useToast } from '@/store/toast-store';
 
 export function OpportunitiesScreen() {
+  const { showToast } = useToast();
   const [oppList, setOppList] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,9 +47,8 @@ export function OpportunitiesScreen() {
         if (attempt < 11) await new Promise((resolve) => setTimeout(resolve, 2000));
       }
       await loadMissions();
-      Alert.alert(confirmed ? 'Mission publiée' : 'Paiement en attente', confirmed
-        ? 'FedaPay a confirmé les frais de 500 FCFA. La mission est visible par les clients.'
-        : 'La mission reste en brouillon tant que FedaPay n’a pas confirmé les 500 FCFA. Tu peux relancer le paiement depuis son détail.');
+      if (confirmed) showToast('Mission publiée : le paiement FedaPay est confirmé.');
+      else showToast('Paiement en attente : la mission reste en brouillon.', 'info');
     } catch (e: any) {
       Alert.alert('Publication non confirmée', e?.response?.data?.message || e?.message || 'La mission reste en brouillon. Réessaie depuis son détail.');
     } finally {
@@ -74,7 +75,7 @@ export function OpportunitiesScreen() {
         await startPublicationPayment(Number(draft.id));
         return;
       }
-      await loadMissions(); setShowForm(false);
+      await loadMissions(); setShowForm(false); showToast('Votre opportunité a été modifiée.');
     } catch (e: any) { Alert.alert('Opportunité non enregistrée', e?.response?.data?.message || 'Vérifiez les informations puis réessayez.'); }
     finally { setSaving(false); }
   };

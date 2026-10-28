@@ -1,14 +1,13 @@
 ﻿import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell,
+  ArrowRight,
   ChevronRight,
   CirclePlay,
-  Clock3,
   Heart,
   Home,
   LayoutGrid,
   MessageCircle,
-  MoreHorizontal,
   Package,
   Plus,
   Radio,
@@ -16,10 +15,10 @@ import {
   ShoppingBag,
   Sparkles,
   Store,
-  TrendingUp,
+  ShieldCheck,
+  Truck,
   UserRound,
   Video,
-  WalletCards,
   X,
 } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
@@ -43,13 +42,15 @@ import { DashboardLayout } from '@/components/dashboard/layout';
 import { DashboardHome } from '@/components/dashboard/screens/home';
 import { StoresScreen } from '@/components/dashboard/screens/stores';
 import { ProductsScreen } from '@/components/dashboard/screens/products';
-import { WalletScreen } from '@/components/dashboard/screens/wallet';
+import { SellerOrdersScreen, WalletScreen } from '@/components/dashboard/screens/wallet';
 import { WithdrawalMethodsScreen } from '@/components/dashboard/screens/withdrawal';
 import { OpportunitiesScreen } from '@/components/dashboard/screens/opportunities';
 import { AnalyticsScreen } from '@/components/dashboard/screens/analytics';
 import { MessagesScreen } from '@/components/dashboard/screens/messages';
 import { ProfileScreen as DashboardProfile } from '@/components/dashboard/screens/profile';
+import { ClientApplicationsScreen, ClientDashboardHome, ClientOrdersScreen } from '@/components/dashboard/screens/client';
 import { SubscriptionsScreen } from '@/components/dashboard/screens/subscriptions';
+import { AdminScreen } from '@/components/dashboard/screens/admin';
 import { MarketplaceScreen as DashboardMarketplace } from '@/components/dashboard/screens/marketplace';
 import type { DashboardScreen } from '@/components/dashboard/shared';
 import { useAuth } from '@/features/auth/hooks';
@@ -59,21 +60,28 @@ import { useCart } from '@/store/cart-store';
 import { StoreProvider } from '@/features/seller/boutique-context';
 import { WalletProvider } from '@/features/seller/wallet-context';
 import { SubscriptionProvider } from '@/features/seller/subscription-context';
-import { formatFcfa, toDesignOpportunity, toDesignProduct } from '@/features/redesign/mappers';
+import { formatFcfa, toDesignOpportunity, toDesignProduct, uploadedImageUrl } from '@/features/redesign/mappers';
+import { createApi } from '@/service/api.config';
 import { useConversations } from '@/features/messages/hooks';
 import { ShortComposer, ShortsFeed } from '@/features/shorts/ShortsMobile';
+
+const publicSiteSettingsApi = createApi('site-settings');
+type PublicSiteImages = { heroImages: string[]; carouselImages: string[] };
 import { LiveCenterScreen } from '@/features/live/LiveCenterScreen';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { LiveAvatar } from '@/components/LiveAvatar';
+import { getSellingProductPrice } from '@/features/products/pricing';
+import { ThemeModeButton, useThemeMode } from '@/store/theme-mode';
+import { useToast } from '@/store/toast-store';
 
 const colors = {
-  ink: '#171717',
-  muted: '#737373',
-  soft: '#F7F7F8',
-  line: '#E9E9EC',
-  burgundy: '#8B0A24',
-  burgundyDark: '#6E071D',
-  burgundySoft: '#F9E9ED',
+  ink: '#241C1C',
+  muted: '#766D67',
+  soft: '#F7F1E9',
+  line: '#E8DED2',
+  burgundy: '#74122E',
+  burgundyDark: '#580D27',
+  burgundySoft: '#F6E7E7',
   green: '#147A57',
   gold: '#C88728',
   navy: '#07121E',
@@ -94,12 +102,13 @@ function Logo({ light = false }: { light?: boolean }) {
   );
 }
 
-function Header({ onNotifications, onOpenProfile }: { onNotifications: () => void; onOpenProfile: () => void }) {
+function Header({ onSearch, onNotifications, onOpenProfile }: { onSearch: () => void; onNotifications: () => void; onOpenProfile: () => void }) {
   return (
     <View style={styles.header}>
       <Logo />
       <View style={styles.headerActions}>
-        <Pressable style={styles.iconButton}>
+        <ThemeModeButton />
+        <Pressable style={styles.iconButton} onPress={onSearch}>
           <Search size={20} color={colors.ink} strokeWidth={1.8} />
         </Pressable>
         <Pressable style={styles.iconButton} onPress={onNotifications}>
@@ -121,55 +130,57 @@ function SectionTitle({ title, action, onPress }: { title: string; action?: stri
   );
 }
 
-function HomeScreen({ onTab, onCreate, displayName, onOpenProfile, onOpenOpportunities, onViewOpportunity, onOpenMessages, onOpenWallet }: { onTab: (tab: Tab) => void; onCreate: () => void; displayName: string; onOpenProfile: () => void; onOpenOpportunities: () => void; onViewOpportunity: (id: string) => void; onOpenMessages: () => void; onOpenWallet: () => void }) {
+function HomeScreen({ onTab, displayName, isSeller, onOpenProfile, onOpenOpportunities, onViewOpportunity, onOpenMessages, onOpenWallet }: { onTab: (tab: Tab) => void; displayName: string; isSeller: boolean; onOpenProfile: () => void; onOpenOpportunities: () => void; onViewOpportunity: (id: string) => void; onOpenMessages: () => void; onOpenWallet: () => void }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { addToCart } = useCart();
+  const { products: apiProducts, loading: productsLoading, error: productsError } = useProducts();
   const { opportunities: apiOpportunities, loading } = useOpportunities();
   const { conversations, loading: conversationsLoading } = useConversations();
+  const [siteImages, setSiteImages] = useState<PublicSiteImages>({ heroImages: [], carouselImages: [] });
   const opportunities = apiOpportunities.map(toDesignOpportunity);
+  const products = apiProducts.map(toDesignProduct);
+  const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean))).slice(0, 8);
+  const heroProduct = products[0];
+  useEffect(() => { let mounted = true; publicSiteSettingsApi.get<PublicSiteImages>('/').then(({ data }) => { if (mounted) setSiteImages(data); }).catch(() => undefined); return () => { mounted = false; }; }, []);
+  const addProductToCart = (id: string) => {
+    const product = products.find((item) => item.id === id);
+    const record = apiProducts.find((item) => String(item.id) === id);
+    if (!product || !record) return;
+    addToCart({ id: product.id, name: product.name, price: getSellingProductPrice(record), image: product.image, seller: 'Orion' });
+    showToast(`${product.name} a été ajouté au panier.`);
+  };
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      <Header onNotifications={() => Alert.alert('Notifications', 'Aucune notification pour le moment.')} onOpenProfile={onOpenProfile} />
-      <View style={styles.greetingRow}>
-        <View>
-          <Text style={styles.eyebrow}>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</Text>
-          <Text style={styles.greeting}>Bonjour, {displayName.split(/\s+/)[0]}</Text>
-          <Text style={styles.subtle}>Voici ce qui se passe sur Orion aujourd'hui.</Text>
+      <Header onSearch={() => onTab('marketplace')} onNotifications={() => Alert.alert('Notifications', 'Aucune notification pour le moment.')} onOpenProfile={onOpenProfile} />
+      <LinearGradient colors={['#801432', '#610D2A', '#4F0B24']} style={styles.storefrontHero}>
+        <View pointerEvents="none" style={styles.heroOrnament}><View style={styles.heroOrnamentOuter}><View style={styles.heroOrnamentInner} /></View><View style={styles.heroOrnamentDot} /></View>
+        <Text style={styles.heroEyebrow}>PRODUITS AFRICAINS · TALENTS LOCAUX</Text>
+        <Text style={styles.heroTitle}>Tout ce qu’il vous faut, au même endroit.</Text>
+        <Text style={styles.heroSubtitle}>Bonjour {displayName.split(/\s+/)[0]}, découvrez les boutiques et les opportunités qui font avancer l’Afrique.</Text>
+        {siteImages.heroImages.length >= 3 ? <View style={styles.heroAdminImages}>{siteImages.heroImages.slice(0, 3).map((image, index) => <Image key={`${image}-${index}`} source={{ uri: uploadedImageUrl(image) }} style={[styles.heroAdminImage, index === 0 ? styles.heroAdminImageMain : index === 1 ? styles.heroAdminImageLeft : styles.heroAdminImageRight]} />)}</View> : heroProduct ? <Pressable style={styles.heroProductVisual} onPress={() => router.push(`/(client)/product/${heroProduct.id}` as any)}><View style={styles.heroProductHalo} /><Image source={{ uri: siteImages.heroImages[0] ? uploadedImageUrl(siteImages.heroImages[0]) : heroProduct.image }} style={styles.heroProductImage} /><View style={styles.heroProductTag}><Text style={styles.heroProductTagText}>À DÉCOUVRIR</Text></View></Pressable> : null}
+        <View style={styles.heroButtons}>
+          <Pressable style={styles.heroPrimaryButton} onPress={() => onTab('marketplace')}><Text style={styles.heroPrimaryText}>Explorer le marché</Text><ArrowRight size={16} color={colors.burgundy} /></Pressable>
+          <Pressable style={styles.heroSecondaryButton} onPress={onOpenOpportunities}><Text style={styles.heroSecondaryText}>Opportunités</Text></Pressable>
         </View>
-        <Pressable style={styles.createMini} onPress={onCreate}><Plus size={21} color="white" /></Pressable>
+        <View style={styles.heroTrustRow}><View style={styles.heroTrustItem}><ShieldCheck size={15} color="#F3D7B2" /><Text style={styles.heroTrustText}>Paiement sécurisé</Text></View><View style={styles.heroTrustItem}><Truck size={16} color="#F3D7B2" /><Text style={styles.heroTrustText}>Livraison en Afrique</Text></View></View>
+      </LinearGradient>
+      <View style={styles.homeSearchWrap}><Pressable style={styles.homeSearch} onPress={() => onTab('marketplace')}><Search size={18} color={colors.muted} /><Text style={styles.homeSearchText}>Rechercher un produit, une boutique...</Text><ChevronRight size={17} color={colors.burgundy} /></Pressable></View>
+      {categories.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeCategories}>{categories.map((category) => <Pressable key={category} style={styles.homeCategory} onPress={() => onTab('marketplace')}><Text style={styles.homeCategoryText}>{category}</Text><ChevronRight size={13} color={colors.burgundy} /></Pressable>)}</ScrollView> : null}
+      {siteImages.carouselImages.length > 0 ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.adminHomeCarousel}>{siteImages.carouselImages.map((image, index) => <Image key={`${image}-${index}`} source={{ uri: uploadedImageUrl(image) }} style={styles.adminHomeCarouselImage} />)}</ScrollView> : null}
+      <View style={styles.homeSection}><SectionTitle title="Produits populaires" action="Tout voir" onPress={() => onTab('marketplace')} />
+        {productsLoading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 20 }} /> : productsError ? <Text style={styles.cardSubtitle}>{productsError}</Text> : products.length === 0 ? <Text style={styles.cardSubtitle}>Les boutiques préparent leurs sélections.</Text> : <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.homeProductRail}>{products.slice(0, 6).map((product) => <View key={product.id} style={styles.homeProductCard}><Pressable onPress={() => router.push(`/(client)/product/${product.id}` as any)}><Image source={{ uri: product.image }} style={styles.homeProductImage} /><Text style={styles.homeProductCategory} numberOfLines={1}>{product.category}</Text><Text style={styles.homeProductName} numberOfLines={1}>{product.name}</Text><Text style={styles.homeProductPrice}>{product.price}</Text>{product.regularPrice ? <Text style={styles.homeProductOriginalPrice}>{product.regularPrice}</Text> : null}</Pressable><Pressable style={styles.homeAddButton} onPress={() => addProductToCart(product.id)}><ShoppingBag size={13} color={colors.burgundy} /><Text style={styles.homeAddText}>Ajouter</Text></Pressable></View>)}</ScrollView>}
       </View>
-      <Pressable onPress={onOpenWallet}>
-        <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.walletCard}>
-          <View style={styles.walletTop}><Text style={styles.walletLabel}>SOLDE DU PORTEFEUILLE</Text><WalletCards size={18} color="#F7CBD5" /></View>
-          <Text style={styles.walletAmount}>— FCFA</Text>
-          <View style={styles.walletFooter}><Text style={styles.walletLink}>Données de portefeuille indisponibles via l’API.</Text><ChevronRight size={18} color="white" /></View>
-        </LinearGradient>
-      </Pressable>
-      <View style={styles.quickGrid}>
-        {[
-          { label: 'Ma boutique', icon: Store, action: onOpenWallet },
-          { label: 'Mes commandes', icon: ShoppingBag, action: () => Alert.alert('Commandes', 'Les commandes commerçant ne sont pas encore exposées par l’API mobile.') },
-          { label: 'Marketplace', icon: LayoutGrid, action: () => onTab('marketplace') },
-          { label: 'Statistiques', icon: TrendingUp, action: onOpenWallet },
-        ].map((item) => {
-          const Icon = item.icon;
-          return <Pressable key={item.label} style={styles.quickItem} onPress={item.action}><View style={styles.quickIcon}><Icon size={20} color={colors.burgundy} strokeWidth={1.8} /></View><Text style={styles.quickLabel}>{item.label}</Text></Pressable>;
-        })}
-      </View>
-      <Pressable style={styles.livePromo} onPress={() => onTab('live')}>
-        <Image source={{ uri: photos.shoes }} style={styles.livePromoImage} />
-        <View style={styles.livePromoBody}>
-          <View style={styles.livePill}><Radio size={12} color={colors.burgundy} /><Text style={styles.livePillText}>LIVE ORION</Text></View>
-          <Text style={styles.livePromoTitle}>Présentez vos produits en direct</Text>
-          <Text style={styles.livePromoMeta}>La diffusion Live n’est pas encore reliée à un service.</Text>
-          <View style={styles.livePromoCtas}><Text style={styles.primaryText}>Découvrir</Text></View>
-        </View>
-        <MoreHorizontal size={18} color={colors.muted} style={styles.moreIcon} />
-      </Pressable>
-      <SectionTitle title="Résumé des ventes" action="Ce mois" />
-      <View style={styles.salesCard}><View><Text style={styles.mutedLabel}>Ventes totales</Text><Text style={styles.salesAmount}>— FCFA</Text><Text style={styles.mutedLabel}>Statistiques de vente indisponibles via l’API mobile.</Text></View></View>
+      {isSeller ? <Pressable style={styles.sellerHomeLink} onPress={onOpenWallet}><Store size={18} color={colors.burgundy} /><Text style={styles.sellerHomeLinkText}>Accéder à mon espace commerçant</Text><ChevronRight size={18} color={colors.burgundy} /></Pressable> : null}
       <SectionTitle title="Opportunités récentes" action="Voir tout" onPress={onOpenOpportunities} />
       {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 16 }} /> : opportunities.length === 0 ? <Text style={styles.cardSubtitle}>Aucune opportunité disponible.</Text> : opportunities.slice(0, 3).map((opp) => <Pressable key={opp.id} style={styles.opportunityCard} onPress={() => onViewOpportunity(opp.id)}><View style={styles.opportunityIcon}><Package size={19} color={colors.burgundy} /></View><View style={styles.flex}><Text style={styles.cardTitle}>{opp.title}</Text><Text style={styles.cardSubtitle}>{opp.type} · {opp.location}</Text><Text style={styles.opportunityAction}>Voir la mission et candidater</Text></View><View style={styles.alignEnd}><Text style={styles.priceSmall}>{opp.budget}</Text><Text style={styles.cardSubtitle}>{opp.candidates} candidats</Text></View></Pressable>)}
       <SectionTitle title="Discussions récentes" action="Voir tout" onPress={onOpenMessages} />
       {conversationsLoading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 12 }} /> : conversations.length === 0 ? <Text style={styles.cardSubtitle}>Aucune discussion pour le moment.</Text> : conversations.slice(0, 3).map((conversation) => <Pressable key={conversation.id} style={styles.opportunityCard} onPress={onOpenMessages}><View style={styles.opportunityIcon}><MessageCircle size={18} color={colors.burgundy} /></View><View style={styles.flex}><Text style={styles.cardTitle}>{conversation.userName}</Text><Text style={styles.cardSubtitle} numberOfLines={1}>{conversation.lastMessage}</Text></View><ChevronRight size={18} color={colors.muted} /></Pressable>)}
+      <Pressable style={styles.livePromo} onPress={() => onTab('live')}>
+        <Image source={{ uri: heroProduct?.image || photos.shoes }} style={styles.livePromoImage} />
+        <View style={styles.livePromoBody}><View style={styles.livePill}><Radio size={12} color={colors.burgundy} /><Text style={styles.livePillText}>ORION EN DIRECT</Text></View><Text style={styles.livePromoTitle}>Faites découvrir votre univers</Text><Text style={styles.livePromoCtas}><Text style={styles.primaryText}>Ouvrir Live Center</Text></Text></View>
+        <ChevronRight size={18} color={colors.burgundy} />
+      </Pressable>
       <SectionTitle title="Aperçus Shorts" action="Voir tout" onPress={() => onTab('shorts')} />
       <Pressable style={styles.shortPreviewLink} onPress={() => onTab('shorts')}><CirclePlay size={22} color={colors.burgundy} /><Text style={styles.shortPreviewText}>Voir les vidéos de la communauté</Text><ChevronRight size={18} color={colors.burgundy} /></Pressable>
       <View style={styles.bottomSpace} />
@@ -182,6 +193,7 @@ function ShortsScreen({ refreshKey, onCreate }: { refreshKey: number; onCreate: 
 
 
 function MarketplaceScreen() {
+  const { showToast } = useToast();
   const { products: apiProducts, loading, error } = useProducts();
   const { addToCart } = useCart();
   const [search, setSearch] = useState('');
@@ -197,7 +209,7 @@ function MarketplaceScreen() {
     <View style={styles.searchBar}><Search size={18} color={colors.muted} /><TextInput style={styles.searchPlaceholder} placeholder="Rechercher un produit, une boutique..." placeholderTextColor={colors.muted} value={search} onChangeText={setSearch} /></View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>{categories.map((item) => <Text key={item} style={category === item ? styles.chipActive : styles.chip} onPress={() => setCategory(item)}>{item}</Text>)}</ScrollView>
     <SectionTitle title={`Produits disponibles (${filtered.length})`} action="Actualisé depuis Orion" />
-    {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 28 }} /> : error ? <Text style={styles.cardSubtitle}>{error}</Text> : filtered.length === 0 ? <Text style={styles.cardSubtitle}>Aucun produit trouvé.</Text> : <View style={styles.productGrid}>{filtered.map((product) => <View key={product.id} style={styles.productCard}><Image source={{ uri: product.image }} style={styles.productImage} /><Pressable style={styles.favorite} onPress={() => toggleFav(product.id)}><Heart size={17} color={colors.burgundy} fill={favorites.includes(product.id) ? colors.burgundy : 'transparent'} /></Pressable><Text style={styles.cardTitle} numberOfLines={1}>{product.name}</Text><Text style={styles.cardSubtitle}>{product.category}</Text><Text style={styles.productPrice}>{product.price}</Text><Pressable style={styles.addToCartBtn} onPress={() => { const item = apiProducts.find((entry) => String(entry.id) === product.id); addToCart({ id: product.id, name: product.name, price: Number(item?.prix ?? 0), image: product.image, seller: 'Orion' }); Alert.alert('Panier', `${product.name} a été ajouté au panier.`); }}><ShoppingBag size={13} color={colors.burgundy} /><Text style={styles.addToCartText}>Ajouter</Text></Pressable></View>)}</View>}
+    {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 28 }} /> : error ? <Text style={styles.cardSubtitle}>{error}</Text> : filtered.length === 0 ? <Text style={styles.cardSubtitle}>Aucun produit trouvé.</Text> : <View style={styles.productGrid}>{filtered.map((product) => <View key={product.id} style={styles.productCard}><Image source={{ uri: product.image }} style={styles.productImage} /><Pressable style={styles.favorite} onPress={() => toggleFav(product.id)}><Heart size={17} color={colors.burgundy} fill={favorites.includes(product.id) ? colors.burgundy : 'transparent'} /></Pressable><Text style={styles.cardTitle} numberOfLines={1}>{product.name}</Text><Text style={styles.cardSubtitle}>{product.category}</Text><Text style={styles.productPrice}>{product.price}</Text>{product.regularPrice ? <Text style={styles.homeProductOriginalPrice}>{product.regularPrice}</Text> : null}<Pressable style={styles.addToCartBtn} onPress={() => { const item = apiProducts.find((entry) => String(entry.id) === product.id); if (!item) return; addToCart({ id: product.id, name: product.name, price: getSellingProductPrice(item), image: product.image, seller: 'Orion' }); showToast(`${product.name} a été ajouté au panier.`); }}><ShoppingBag size={13} color={colors.burgundy} /><Text style={styles.addToCartText}>Ajouter</Text></Pressable></View>)}</View>}
     <View style={styles.bottomSpace} />
   </ScrollView>;
 }
@@ -209,7 +221,7 @@ function ProfileScreen({ onTab, onDashboard, onLogout, displayName, isSeller }: 
       <Pressable style={styles.iconButton} onPress={onLogout}><Text style={styles.cardSubtitle}>Quitter</Text></Pressable>
     </View>
     <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.profileBanner}><Text style={styles.profileBannerEyebrow}>VOTRE ÉCOSYSTÈME</Text><Text style={styles.profileBannerTitle}>Créez une fois.{ '\n' }Vendez partout.</Text><Text style={styles.profileBannerText}>Boutique · Shorts · Live · Clients</Text></LinearGradient>
-    {isSeller ? <Pressable style={styles.dashboardCta} onPress={onDashboard}><Store size={19} color="white" /><Text style={styles.dashboardCtaText}>Dashboard commerçant</Text><ChevronRight size={18} color="white" /></Pressable> : null}
+    <Pressable style={styles.dashboardCta} onPress={onDashboard}><Store size={19} color="white" /><Text style={styles.dashboardCtaText}>{isSeller ? 'Dashboard commerçant' : 'Mon espace personnel'}</Text><ChevronRight size={18} color="white" /></Pressable>
     {[['Marketplace', LayoutGrid, 'marketplace'], ['Mes Shorts', CirclePlay, 'shorts'], ['Live Center', Radio, 'live']].map(([label, Icon, tab]) => { const IconComponent = Icon as typeof Store; return <Pressable key={label as string} style={styles.profileMenu} onPress={() => onTab(tab as Tab)}><View style={styles.profileMenuIcon}><IconComponent size={19} color={colors.burgundy} /></View><Text style={styles.profileMenuText}>{label as string}</Text><ChevronRight size={18} color={colors.muted} /></Pressable>; })}
     <Pressable style={styles.outlineCta} onPress={onLogout}><Text style={styles.outlineCtaText}>Se déconnecter</Text></Pressable>
     <View style={styles.bottomSpace} />
@@ -221,8 +233,11 @@ function CreateSheet({ visible, onClose, onCreateClip }: { visible: boolean; onC
 }
 
 export default function Index() {
+  const { mode } = useThemeMode();
+  const dark = mode === 'dark';
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { showToast } = useToast();
   const [tab, setTab] = useState<Tab>('home');
   const [createVisible, setCreateVisible] = useState(false);
   const [clipVisible, setClipVisible] = useState(false);
@@ -256,20 +271,34 @@ export default function Index() {
     setShortRefreshKey((key) => key + 1);
   };
   const openDashboard = (target: DashboardScreen = 'home') => {
-    if (user?.role !== 'COMMERCANT') {
-      Alert.alert('Espace commerçant', 'Le tableau de bord est réservé aux comptes commerçants.');
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (user.role === 'ADMIN' && !['admin-users', 'admin-orders', 'admin-wallet', 'admin-settings', 'admin-store-categories'].includes(target)) {
+      target = 'admin-users';
+    } else if (user.role !== 'COMMERCANT' && !['home', 'applications', 'orders', 'messages', 'profile'].includes(target)) {
+      Alert.alert('Section indisponible', 'Cette section est réservée aux comptes commerçants.');
       return;
     }
     setDashScreen(target);
     setShowDashboard(true);
   };
-  const exitDashboard = () => setShowDashboard(false);
+  const logoutFromDashboard = () => { showToast('Vous êtes déconnecté.'); void logout(); };
+  const goToPublicHome = () => { setTab('home'); setShowDashboard(false); };
 
-  if (isLoading) return <SafeAreaView style={styles.safeArea}><View style={styles.loading}><ActivityIndicator color={colors.burgundy} size="large" /></View></SafeAreaView>;
+  if (isLoading) return <SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><View style={styles.loading}><ActivityIndicator color={colors.burgundy} size="large" /></View></SafeAreaView>;
   if (!isAuthenticated) return <Redirect href="/login" />;
 
   if (showDashboard) {
-    const dashContent = dashScreen === 'home' ? <DashboardHome onNavigate={setDashScreen} />
+    const isSeller = user?.role === 'COMMERCANT';
+    const isAdmin = user?.role === 'ADMIN';
+    const dashContent = isAdmin ? <AdminScreen screen={dashScreen} />
+      : !isSeller && dashScreen === 'home' ? <ClientDashboardHome onNavigate={setDashScreen} />
+      : !isSeller && dashScreen === 'applications' ? <ClientApplicationsScreen />
+      : !isSeller && dashScreen === 'orders' ? <ClientOrdersScreen />
+      : isSeller && dashScreen === 'orders' ? <SellerOrdersScreen />
+      : dashScreen === 'home' ? <DashboardHome onNavigate={setDashScreen} />
       : dashScreen === 'stores' ? <StoresScreen />
       : dashScreen === 'products' ? <ProductsScreen />
       : dashScreen === 'marketplace' ? <DashboardMarketplace />
@@ -279,21 +308,21 @@ export default function Index() {
       : dashScreen === 'opportunities' ? <OpportunitiesScreen />
       : dashScreen === 'subscriptions' ? <SubscriptionsScreen />
       : dashScreen === 'messages' ? <MessagesScreen />
-      : <DashboardProfile onNavigate={setDashScreen} />;
-    return <SubscriptionProvider><WalletProvider><StoreProvider><SafeAreaView style={styles.safeArea}><DashboardLayout active={dashScreen} onNavigate={setDashScreen} onExit={exitDashboard}>{dashContent}</DashboardLayout></SafeAreaView></StoreProvider></WalletProvider></SubscriptionProvider>;
+      : <DashboardProfile />;
+    return <SubscriptionProvider><WalletProvider><StoreProvider><SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><DashboardLayout active={dashScreen} onNavigate={setDashScreen} onHome={goToPublicHome} onExit={logoutFromDashboard}>{dashContent}</DashboardLayout></SafeAreaView></StoreProvider></WalletProvider></SubscriptionProvider>;
   }
 
   const displayName = [user?.prenom, user?.nom].filter(Boolean).join(' ') || user?.email || 'Membre Orion';
-  const screen = tab === 'home' ? <HomeScreen onTab={setTab} onCreate={() => setCreateVisible(true)} displayName={displayName} onOpenProfile={() => setTab('profile')} onOpenOpportunities={() => router.push('/(client)/opportunities')} onViewOpportunity={(id) => router.push(`/(client)/opportunities/${id}` as any)} onOpenMessages={() => user?.role === 'COMMERCANT' ? openDashboard('messages') : router.push('/(client)/messages')} onOpenWallet={() => user?.role === 'COMMERCANT' ? openDashboard() : Alert.alert('Espace commerçant', 'Cette section est réservée aux comptes commerçants.')} /> : tab === 'shorts' ? <ShortsScreen refreshKey={shortRefreshKey} onCreate={() => { void openClip(); }} /> : tab === 'live' ? <LiveCenterScreen onCreateClip={openClip} onOpenProfile={() => setTab('profile')} /> : tab === 'marketplace' ? <MarketplaceScreen /> : <ProfileScreen onTab={setTab} onDashboard={openDashboard} onLogout={() => { void logout(); }} displayName={displayName} isSeller={user?.role === 'COMMERCANT'} />;
-  return <SafeAreaView style={styles.safeArea}><View style={[styles.app, { maxWidth: contentWidth }]}>{screen}<View style={styles.bottomNav}>{[{ key: 'home' as Tab, label: 'Accueil', icon: Home }, { key: 'marketplace' as Tab, label: 'Marché', icon: LayoutGrid }, { key: 'shorts' as Tab, label: 'Shorts', icon: CirclePlay }, { key: 'live' as Tab, label: 'Live', icon: Radio }, { key: 'profile' as Tab, label: 'Profil', icon: UserRound }].map((item) => { const Icon = item.icon; const active = tab === item.key; return <Pressable key={item.key} style={styles.navItem} onPress={() => setTab(item.key)}><Icon size={21} color={active ? colors.burgundy : colors.muted} strokeWidth={active ? 2.5 : 1.8} /><Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text></Pressable>; })}<Pressable style={styles.floatingPlus} onPress={() => setCreateVisible(true)}><Plus size={24} color="white" strokeWidth={2.4} /></Pressable></View></View><CreateSheet visible={createVisible} onClose={() => setCreateVisible(false)} onCreateClip={openClip} /><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
+  const screen = tab === 'home' ? <HomeScreen onTab={setTab} displayName={displayName} isSeller={user?.role === 'COMMERCANT'} onOpenProfile={() => setTab('profile')} onOpenOpportunities={() => router.push('/(client)/opportunities')} onViewOpportunity={(id) => router.push(`/(client)/opportunities/${id}` as any)} onOpenMessages={() => user?.role === 'COMMERCANT' ? openDashboard('messages') : router.push('/(client)/messages')} onOpenWallet={() => user?.role === 'COMMERCANT' ? openDashboard() : Alert.alert('Espace commerçant', 'Cette section est réservée aux comptes commerçants.')} /> : tab === 'shorts' ? <ShortsScreen refreshKey={shortRefreshKey} onCreate={() => { void openClip(); }} /> : tab === 'live' ? <LiveCenterScreen onCreateClip={openClip} onOpenProfile={() => setTab('profile')} /> : tab === 'marketplace' ? <MarketplaceScreen /> : <ProfileScreen onTab={setTab} onDashboard={openDashboard} onLogout={() => { showToast('Vous êtes déconnecté.'); void logout(); }} displayName={displayName} isSeller={user?.role === 'COMMERCANT'} />;
+  return <SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><View style={[styles.app, dark && darkStyles.canvas, { maxWidth: contentWidth }]}>{screen}<View style={styles.bottomNav}>{[{ key: 'home' as Tab, label: 'Accueil', icon: Home }, { key: 'marketplace' as Tab, label: 'Marché', icon: LayoutGrid }, { key: 'shorts' as Tab, label: 'Shorts', icon: CirclePlay }, { key: 'live' as Tab, label: 'Live', icon: Radio }, { key: 'profile' as Tab, label: 'Profil', icon: UserRound }].map((item) => { const Icon = item.icon; const active = tab === item.key; return <Pressable key={item.key} style={styles.navItem} onPress={() => setTab(item.key)}><Icon size={21} color={active ? colors.burgundy : colors.muted} strokeWidth={active ? 2.5 : 1.8} /><Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text></Pressable>; })}<Pressable style={styles.floatingPlus} onPress={() => setCreateVisible(true)}><Plus size={24} color="white" strokeWidth={2.4} /></Pressable></View></View><CreateSheet visible={createVisible} onClose={() => setCreateVisible(false)} onCreateClip={openClip} /><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
+  safeArea: { flex: 1, backgroundColor: '#F5EFE7' },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  app: { flex: 1, width: '100%', alignSelf: 'center', backgroundColor: '#FFFFFF' },
+  app: { flex: 1, width: '100%', alignSelf: 'center', backgroundColor: '#F5EFE7' },
   flex: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 110 },
+  scrollContent: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 110 },
   header: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   logoWrap: { alignItems: 'flex-start' },
   logoOro: { color: colors.burgundy, fontSize: 24, fontWeight: '800', letterSpacing: -2, lineHeight: 21 },
@@ -302,6 +331,52 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
   notificationDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, backgroundColor: colors.burgundy, borderRadius: 3, borderWidth: 1, borderColor: 'white' },
+  storefrontHero: { minHeight: 326, borderRadius: 23, paddingHorizontal: 19, paddingTop: 20, paddingBottom: 17, marginTop: 10, marginBottom: 15, overflow: 'hidden', justifyContent: 'space-between' },
+  heroEyebrow: { color: '#F0D39F', fontSize: 9, fontWeight: '800', letterSpacing: 1, maxWidth: '76%' },
+  heroTitle: { color: '#FFFAF3', fontSize: 25, fontWeight: '900', lineHeight: 29, letterSpacing: -0.8, maxWidth: '73%', marginTop: 13 },
+  heroSubtitle: { color: '#F2DDE0', fontSize: 11, lineHeight: 16, maxWidth: '72%', marginTop: 8 },
+  heroButtons: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
+  heroPrimaryButton: { minHeight: 40, borderRadius: 11, backgroundColor: '#FFF9F0', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  heroPrimaryText: { color: colors.burgundy, fontSize: 10, fontWeight: '800' },
+  heroSecondaryButton: { minHeight: 40, borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,245,230,0.55)', paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  heroSecondaryText: { color: '#FFF9F0', fontSize: 10, fontWeight: '700' },
+  heroTrustRow: { flexDirection: 'row', gap: 16, marginTop: 18 },
+  heroTrustItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  heroTrustText: { color: '#F7E8D7', fontSize: 9, fontWeight: '600' },
+  heroOrnament: { position: 'absolute', top: -30, right: -25, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.035)', alignItems: 'center', justifyContent: 'center' },
+  heroOrnamentOuter: { width: 108, height: 108, borderWidth: 1, borderColor: 'rgba(240,211,159,0.48)', transform: [{ rotate: '45deg' }], alignItems: 'center', justifyContent: 'center' },
+  heroOrnamentInner: { width: 66, height: 66, borderWidth: 1, borderColor: 'rgba(240,211,159,0.4)' },
+  heroOrnamentDot: { position: 'absolute', bottom: 28, left: 24, width: 7, height: 7, borderRadius: 4, backgroundColor: '#E8C789' },
+  heroProductVisual: { position: 'absolute', top: 99, right: 11, width: '39%', height: 139, alignItems: 'center', justifyContent: 'center' },
+  heroAdminImages: { position: 'absolute', top: 100, right: 10, width: '43%', height: 145 },
+  heroAdminImage: { position: 'absolute', borderRadius: 11, borderWidth: 3, borderColor: '#FFF4E4', backgroundColor: '#F7E7D3' },
+  heroAdminImageMain: { right: 0, top: 5, width: '72%', height: '83%', transform: [{ rotate: '3deg' }] },
+  heroAdminImageLeft: { left: 0, bottom: 0, width: '48%', height: '49%', transform: [{ rotate: '-7deg' }] },
+  heroAdminImageRight: { right: 0, bottom: -2, width: '43%', height: '40%', transform: [{ rotate: '7deg' }] },
+  adminHomeCarousel: { paddingHorizontal: 18, gap: 10, marginTop: 14 },
+  adminHomeCarouselImage: { width: 245, height: 110, borderRadius: 13, resizeMode: 'cover', backgroundColor: '#EFE6DB' },
+  heroProductHalo: { position: 'absolute', width: 115, height: 115, borderRadius: 58, backgroundColor: 'rgba(245,221,188,0.88)' },
+  heroProductImage: { width: '100%', height: '100%', resizeMode: 'contain', borderRadius: 14 },
+  heroProductTag: { position: 'absolute', right: -2, bottom: 2, backgroundColor: '#FFF8EC', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 5 },
+  heroProductTagText: { color: colors.burgundy, fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
+  homeSearchWrap: { marginBottom: 9 },
+  homeSearch: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderColor: colors.line, borderRadius: 13, backgroundColor: '#FFFCF7', paddingHorizontal: 13 },
+  homeSearchText: { flex: 1, color: '#918780', fontSize: 11 },
+  homeCategories: { gap: 8, paddingVertical: 6, paddingBottom: 19 },
+  homeCategory: { minHeight: 35, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 10, backgroundColor: '#FFFCF7', borderWidth: 1, borderColor: colors.line, paddingHorizontal: 10 },
+  homeCategoryText: { color: '#3D3331', fontSize: 10, fontWeight: '700' },
+  homeSection: { marginBottom: 15 },
+  homeProductRail: { gap: 11, paddingBottom: 8 },
+  homeProductCard: { width: 157, backgroundColor: '#FFFCF7', borderWidth: 1, borderColor: colors.line, borderRadius: 15, padding: 8 },
+  homeProductImage: { width: '100%', height: 115, borderRadius: 10, backgroundColor: '#F1E9DF' },
+  homeProductCategory: { color: '#9B775C', fontSize: 8, fontWeight: '800', letterSpacing: 0.5, marginTop: 8 },
+  homeProductName: { color: colors.ink, fontSize: 11, fontWeight: '700', marginTop: 4 },
+  homeProductPrice: { color: colors.burgundy, fontSize: 11, fontWeight: '900', marginTop: 5 },
+  homeProductOriginalPrice: { color: colors.muted, fontSize: 10, textDecorationLine: 'line-through', marginTop: 2 },
+  homeAddButton: { minHeight: 31, borderWidth: 1, borderColor: '#D9B7B6', borderRadius: 9, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 8 },
+  homeAddText: { color: colors.burgundy, fontSize: 9, fontWeight: '800' },
+  sellerHomeLink: { minHeight: 47, flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 1, borderColor: '#E1C9BA', backgroundColor: '#FBF4EA', paddingHorizontal: 12, marginBottom: 18 },
+  sellerHomeLinkText: { flex: 1, color: colors.burgundy, fontSize: 11, fontWeight: '800' },
   avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#243D4E', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: 'white', fontWeight: '700', fontSize: 11 },
   greetingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
@@ -489,5 +564,7 @@ const styles = StyleSheet.create({
   dashboardCta: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.ink, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, marginBottom: 18 },
   dashboardCtaText: { color: 'white', fontSize: 13, fontWeight: '800', flex: 1 },
 });
+
+const darkStyles = StyleSheet.create({ canvas: { backgroundColor: '#15161B' } });
 
 

@@ -25,6 +25,7 @@ import {
 } from 'react-native';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import type { Boutique, produits, Short, ShortAuthor, ShortComment, ShortCreatorProfile } from '@/model/model';
+import { getSellingProductPrice } from '@/features/products/pricing';
 import { shortService } from '@/service/short.service';
 import { boutiqueService } from '@/service/boutique.service';
 import { produitService } from '@/service/produit.service';
@@ -311,7 +312,7 @@ function ProductSheet({ product, visible, onClose }: { product: produits; visibl
         <View style={styles.productSheetHeader}><Text style={styles.productSheetTitle}>Produit de la vidéo</Text><Pressable onPress={onClose} hitSlop={10}><X size={22} color={colors.ink} /></Pressable></View>
         {product.image ? <Image source={{ uri: uploadedImageUrl(product.image) }} style={styles.linkedProductImage} resizeMode="cover" /> : <View style={[styles.linkedProductImage, styles.productImageFallback]}><Store size={34} color={colors.burgundy} /></View>}
         <Text style={styles.linkedProductName}>{product.nom}</Text>
-        <Text style={styles.linkedProductPrice}>{formatFcfa(Number(product.prix ?? 0))}</Text>
+        <Text style={styles.linkedProductPrice}>{formatFcfa(getSellingProductPrice(product))}</Text>
         {product.description ? <Text style={styles.linkedProductDescription}>{product.description}</Text> : null}
         {product.stock != null ? <Text style={styles.linkedProductStock}>{product.stock > 0 ? `${product.stock} en stock` : 'Rupture de stock'}</Text> : null}
       </Pressable>
@@ -460,7 +461,7 @@ function CreatorProfile({ author, onBack, onOpenShort }: { author: ShortAuthor; 
               <View style={styles.profileGrid}>{shopProducts.map((product) => <View key={`${shop.id}-${product.id}`} style={[styles.productTile, { width: tileWidth }]}>
                 {product.image ? <Image source={{ uri: uploadedImageUrl(product.image) }} style={styles.profileProductImage} resizeMode="cover" /> : <View style={[styles.profileProductImage, styles.productImageFallback]}><Store size={24} color={colors.burgundy} /></View>}
                 <Text style={styles.profileProductName} numberOfLines={2}>{product.nom}</Text>
-                <Text style={styles.profileProductPrice}>{formatFcfa(Number(product.prix ?? 0))}</Text>
+                <Text style={styles.profileProductPrice}>{formatFcfa(getSellingProductPrice(product))}</Text>
               </View>)}</View>
             </View>;
           })}
@@ -469,7 +470,7 @@ function CreatorProfile({ author, onBack, onOpenShort }: { author: ShortAuthor; 
             <View style={styles.profileGrid}>{standaloneProducts.map((product) => <View key={product.id} style={[styles.productTile, { width: tileWidth }]}>
               {product.image ? <Image source={{ uri: uploadedImageUrl(product.image) }} style={styles.profileProductImage} resizeMode="cover" /> : <View style={[styles.profileProductImage, styles.productImageFallback]}><Store size={24} color={colors.burgundy} /></View>}
               <Text style={styles.profileProductName} numberOfLines={2}>{product.nom}</Text>
-              <Text style={styles.profileProductPrice}>{formatFcfa(Number(product.prix ?? 0))}</Text>
+              <Text style={styles.profileProductPrice}>{formatFcfa(getSellingProductPrice(product))}</Text>
             </View>)}</View>
           </View> : null}
         </View>
