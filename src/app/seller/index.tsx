@@ -1,10 +1,15 @@
+import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useStore } from "@/features/seller/boutique-context";
 import { useWallet } from "@/features/seller/wallet-context";
-import { dashboardStats, recentSales, missions } from "@/features/seller/mock";
+import { useAuth } from "@/features/auth/hooks";
+import { ordersApi, type SellerAnalytics } from "@/features/orders/api";
+import { produitService } from "@/service/produit.service";
+import { mission as missionService } from "@/service/mission.service";
+import type { Mission } from "@/model/model";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { Palette, Radius, Shadows, Spacing, Typography, BottomTabInset } from "@/constants/theme";
@@ -13,16 +18,45 @@ import { Card, Chip, StatTile, Button, type ChipTone } from "@/components/ui";
 
 function statusTone(status: string): ChipTone {
   switch (status) {
-    case "Livré": return "success";
-    case "En cours": return "info";
+    case "terminee": return "success";
+    case "payee": return "info";
     default: return "warning";
   }
+}
+
+function statusLabel(status: string) {
+  return status === "terminee" ? "Terminée" : status === "payee" ? "Payée" : status;
+}
+
+const monthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+/** Données réelles du tableau de bord : ventes du mois, stock et missions du commerçant. */
+function useSellerOverview(userId?: number) {
+  const [analytics, setAnalytics] = useState<SellerAnalytics | null>(null);
+  const [stock, setStock] = useState(0);
+  const [productCount, setProductCount] = useState(0);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  useEffect(() => {
+    if (!userId) return;
+    const now = new Date();
+    ordersApi.getSellerAnalytics(monthKey(new Date(now.getFullYear(), now.getMonth(), 1)), monthKey(now)).then(setAnalytics).catch(() => setAnalytics(null));
+    produitService.getByOwner(userId).then((products) => {
+      setProductCount(products.length);
+      setStock(products.reduce((total, product) => total + Number(product.stock ?? 0), 0));
+    }).catch(() => undefined);
+    missionService.getMine().then(setMissions).catch(() => setMissions([]));
+  }, [userId]);
+  return { analytics, stock, productCount, missions };
 }
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { activeStore } = useStore();
   const { totalRevenue, availableBalance, pendingBalance } = useWallet();
+  const { user } = useAuth();
+  const { analytics, stock, productCount, missions } = useSellerOverview(user?.id);
+  const summary = analytics?.summary ?? { revenue: 0, orderCount: 0, unitsSold: 0, averageOrderValue: 0 };
+  const recentSales = analytics?.recentOrders.slice(0, 5) ?? [];
 
   return (
     <SafeAreaView style={styles.flex} edges={["top"]}>
@@ -72,8 +106,8 @@ export default function DashboardScreen() {
               <Text style={styles.quickCardTitle}>Mes Produits</Text>
               <Ionicons name="arrow-forward" size={16} color={Palette.textMuted} style={{ marginLeft: "auto" }} />
             </View>
-            <Text style={styles.quickCardValue}>{dashboardStats.stock}</Text>
-            <Text style={styles.quickCardSub}>Articles en stock</Text>
+            <Text style={styles.quickCardValue}>{stock}</Text>
+            <Text style={styles.quickCardSub}>Articles en stock · {productCount} produit{productCount === 1 ? "" : "s"}</Text>
           </Card>
         </View>
 
@@ -83,19 +117,13 @@ export default function DashboardScreen() {
         </View>
         <View style={styles.statsGrid}>
           {[
-            { icon: "cash-outline" as const, label: "Revenus totaux", value: formatCurrency(dashboardStats.revenue), growth: dashboardStats.revenueGrowth, tone: "primary" as ChipTone },
-            { icon: "cart-outline" as const, label: "Ventes ce mois", value: dashboardStats.sales.toString(), growth: dashboardStats.salesGrowth, tone: "secondary" as ChipTone },
-            { icon: "cube-outline" as const, label: "Articles en stock", value: dashboardStats.stock.toString(), growth: dashboardStats.stockGrowth, tone: "info" as ChipTone },
-            { icon: "time-outline" as const, label: "Commandes en cours", value: dashboardStats.pendingOrders.toString(), growth: dashboardStats.ordersGrowth, tone: "warning" as ChipTone },
+            { icon: "cash-outline" as const, label: "Revenus du mois", value: formatCurrency(summary.revenue), tone: "primary" as ChipTone },
+            { icon: "cart-outline" as const, label: "Commandes du mois", value: summary.orderCount.toString(), tone: "secondary" as ChipTone },
+            { icon: "cube-outline" as const, label: "Articles en stock", value: stock.toString(), tone: "info" as ChipTone },
+            { icon: "pricetag-outline" as const, label: "Panier moyen", value: formatCurrency(summary.averageOrderValue), tone: "warning" as ChipTone },
           ].map((stat) => (
             <View key={stat.label} style={styles.statTileWrap}>
               <StatTile icon={stat.icon} value={stat.value} label={stat.label} tone={stat.tone} />
-              <View style={[styles.growthBadge, { backgroundColor: stat.growth >= 0 ? Palette.success.bg : Palette.danger.bg }]}>
-                <Ionicons name={stat.growth >= 0 ? "trending-up" : "trending-down"} size={12} color={stat.growth >= 0 ? Palette.success.text : Palette.danger.text} />
-                <Text style={{ fontSize: 11, color: stat.growth >= 0 ? Palette.success.text : Palette.danger.text, fontWeight: "600" }}>
-                  {stat.growth > 0 ? "+" : ""}{stat.growth}%
-                </Text>
-              </View>
             </View>
           ))}
         </View>
@@ -108,15 +136,15 @@ export default function DashboardScreen() {
               <Text style={styles.viewAll}>Voir tout</Text>
             </TouchableOpacity>
           </View>
-          {recentSales.map((sale) => (
-            <View key={sale.id} style={styles.saleRow}>
+          {recentSales.length === 0 ? <Text style={styles.saleDate}>Aucune vente ce mois-ci.</Text> : recentSales.map((sale) => (
+            <View key={sale.venteId} style={styles.saleRow}>
               <View style={styles.saleInfo}>
-                <Text style={styles.saleProduct}>{sale.product}</Text>
-                <Text style={styles.saleDate}>{sale.date}</Text>
+                <Text style={styles.saleProduct} numberOfLines={1}>{sale.articles.map((article) => article.nom).join(", ") || sale.reference}</Text>
+                <Text style={styles.saleDate}>{new Date(sale.date).toLocaleDateString("fr-FR")}</Text>
               </View>
               <View style={styles.saleRight}>
-                <Text style={styles.saleAmount}>{formatCurrency(sale.amount)}</Text>
-                <Chip label={sale.status} tone={statusTone(sale.status)} size="sm" />
+                <Text style={styles.saleAmount}>{formatCurrency(sale.montant)}</Text>
+                <Chip label={statusLabel(sale.statut)} tone={statusTone(sale.statut)} size="sm" />
               </View>
             </View>
           ))}
@@ -125,29 +153,22 @@ export default function DashboardScreen() {
         {/* Missions */}
         <Card style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>Missions en cours</Text>
+            <Text style={styles.cardTitle}>Mes missions</Text>
             <TouchableOpacity onPress={() => router.push("/seller/opportunities")}>
               <Ionicons name="arrow-forward" size={18} color={Palette.primary[500]} />
             </TouchableOpacity>
           </View>
-          {missions.map((m) => (
-            <View key={m.id} style={styles.missionCard}>
+          {missions.length === 0 ? <Text style={styles.saleDate}>Aucune mission publiée.</Text> : missions.slice(0, 3).map((m) => (
+            <TouchableOpacity key={m.id} style={styles.missionCard} onPress={() => router.push(`/seller/opportunities/${m.id}` as any)}>
               <View style={styles.missionTop}>
-                <Text style={styles.missionTitle} numberOfLines={1}>{m.title}</Text>
-                <Chip label={m.type} tone="primary" size="sm" />
-              </View>
-              <View style={styles.progressRow}>
-                <Text style={styles.progressLabel}>Progression</Text>
-                <Text style={styles.progressValue}>{m.progress}%</Text>
-              </View>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${m.progress}%` }]} />
+                <Text style={styles.missionTitle} numberOfLines={1}>{m.titre}</Text>
+                <Chip label={m.type ?? "Mission"} tone="primary" size="sm" />
               </View>
               <View style={styles.missionFooter}>
-                <Text style={styles.missionDeadline}>Échéance: {m.deadline}</Text>
-                <Text style={styles.missionReward}>{m.reward.split(" ")[0]}</Text>
+                <Text style={styles.missionDeadline}>{m.publicationPayee ? "Publiée" : "Brouillon · paiement requis"}</Text>
+                <Text style={styles.missionReward}>{m.candidatures?.length ?? 0} candidature{(m.candidatures?.length ?? 0) === 1 ? "" : "s"}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </Card>
 

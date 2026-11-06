@@ -1,5 +1,6 @@
 import { Mail, MapPin, Phone, Shield, Store } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/features/auth/hooks';
 import { useStore } from '@/features/seller/boutique-context';
@@ -7,6 +8,7 @@ import { colors, radius, spacing } from '../theme';
 
 export function ProfileScreen() {
   const { user, isSeller } = useAuth();
+  const router = useRouter();
   const { activeStore } = useStore();
   const fullName = [user?.prenom, user?.nom].filter(Boolean).join(' ') || 'Membre Orion';
   const initials = fullName.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -26,6 +28,7 @@ export function ProfileScreen() {
       <InfoRow icon={<Phone size={18} color={colors.burgundy} />} label="Téléphone" value={user?.contact || 'Non renseigné'} />
       <InfoRow icon={<MapPin size={18} color={colors.burgundy} />} label="Localisation" value={user?.localisation || user?.adresse || 'Non renseignée'} />
     </View>
+    <Pressable style={styles.editButton} onPress={() => router.push('/(client)/account/profile' as any)}><Text style={styles.editButtonText}>Modifier mon profil</Text></Pressable>
     {isSeller ? <><Text style={styles.sectionLabel}>Informations commerciales</Text><View style={styles.infoCard}>
       <InfoRow icon={<Store size={18} color={colors.burgundy} />} label="Boutique active" value={activeStore?.nom || 'Aucune boutique'} />
       <InfoRow icon={<Shield size={18} color={colors.burgundy} />} label="Statut" value="Compte commerçant" />
@@ -38,6 +41,8 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 }
 
 const styles = StyleSheet.create({
+  editButton: { backgroundColor: colors.burgundy, borderRadius: radius.md, paddingVertical: 14, alignItems: 'center', marginBottom: spacing.lg },
+  editButtonText: { color: 'white', fontSize: 14, fontWeight: '800' },
   content: { paddingBottom: 40 }, header: { marginBottom: spacing.md }, title: { color: colors.ink, fontSize: 24, fontWeight: '800' }, subtitle: { color: colors.muted, fontSize: 13, marginTop: 4 },
   profileCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, marginBottom: spacing.md }, avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#243D4E', alignItems: 'center', justifyContent: 'center', marginRight: 14 }, avatarText: { color: 'white', fontSize: 19, fontWeight: '800' }, profileInfo: { flex: 1 }, profileName: { color: colors.ink, fontSize: 19, fontWeight: '800' }, profileRole: { color: colors.burgundy, fontSize: 11, fontWeight: '700', marginTop: 4 }, profileLocation: { color: colors.muted, fontSize: 11, marginTop: 4 },
   banner: { borderRadius: radius.lg, padding: 20, marginBottom: spacing.lg }, bannerEyebrow: { color: '#F7CBD5', fontSize: 9, letterSpacing: 1.1, fontWeight: '800' }, bannerTitle: { color: 'white', fontSize: 23, fontWeight: '800', marginTop: 12, lineHeight: 27 }, bannerText: { color: '#F7CBD5', fontSize: 11, marginTop: 14 },

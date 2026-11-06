@@ -24,11 +24,17 @@ class UserService {
     return res.data;
   }
 
-  async update(id: number, userData: Partial<Utilisateur>) {
+  async update(id: number, userData: Partial<Utilisateur>, imageUri?: string) {
     const formData = new FormData();
-    Object.keys(userData).forEach((key) => {
-      formData.append(key, (userData as any)[key]);
+    Object.entries(userData).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      formData.append(key, String(value));
     });
+    if (imageUri) {
+      const name = imageUri.split('/').pop() || 'profil.jpg';
+      const extension = name.split('.').pop()?.toLowerCase();
+      formData.append('image', { uri: imageUri, name, type: extension === 'png' ? 'image/png' : 'image/jpeg' } as any);
+    }
     const res = await api.put(`/${id}`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });

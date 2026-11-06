@@ -3,6 +3,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3000").replace(/\/$/, "");
 
+const SENSITIVE_KEYS = /password|token|authorization|secret/i;
+
+function redact(value: unknown): unknown {
+  if (!value || typeof value !== "object" || value instanceof FormData) return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, SENSITIVE_KEYS.test(key) ? "***" : entry]));
+}
+
+function parseBody(data: unknown) {
+  if (typeof data !== "string") return data;
+  try { return JSON.parse(data); } catch { return data; }
+}
+
+/** Logs réseau uniquement en développement, jamais de jeton ni de mot de passe. */
+const log = (...args: unknown[]) => { if (__DEV__) console.log(...args); };
+
 export function createApi(resource: string) {
   const api = axios.create({
     baseURL: `${API_BASE_URL}/${resource}`,
@@ -27,26 +42,26 @@ export function createApi(resource: string) {
 
       const fullUrl = `${config.baseURL || ""}${config.url || ""}`;
 
-      console.log("\n🚀 =============================");
-      console.log(`🚀 ${config.method?.toUpperCase()} ${fullUrl}`);
-      console.log("📍 URL :", fullUrl);
-      console.log("🔧 Method :", config.method?.toUpperCase());
-      console.log("📦 Headers :", config.headers);
+      log("\n🚀 =============================");
+      log(`🚀 ${config.method?.toUpperCase()} ${fullUrl}`);
+      log("📍 URL :", fullUrl);
+      log("🔧 Method :", config.method?.toUpperCase());
+      log("📦 Headers :", redact({ ...config.headers }));
 
       if (config.params) {
-        console.log("🔍 Query Params :", config.params);
+        log("🔍 Query Params :", config.params);
       }
 
       if (config.data) {
-        console.log("📤 Body :", config.data);
+        log("📤 Body :", redact(parseBody(config.data)));
       }
 
-      console.log("🚀 =============================\n");
+      log("🚀 =============================\n");
 
       return config;
     },
     (error) => {
-      console.log("❌ REQUEST ERROR :", error);
+      log("❌ REQUEST ERROR :", error);
       return Promise.reject(error);
     }
   );
@@ -61,14 +76,14 @@ export function createApi(resource: string) {
         response.config.url || ""
       }`;
 
-      console.log("\n✅ =============================");
-      console.log(
+      log("\n✅ =============================");
+      log(
         `✅ ${response.status} ${response.config.method?.toUpperCase()} ${fullUrl}`
       );
-      console.log("⏱️ Duration :", `${duration} ms`);
-      console.log("📊 Status :", response.status);
-      console.log("📥 Response :", response.data);
-      console.log("✅ =============================\n");
+      log("⏱️ Duration :", `${duration} ms`);
+      log("📊 Status :", response.status);
+      log("📥 Response :", redact(response.data));
+      log("✅ =============================\n");
 
       return response;
     },
@@ -82,13 +97,13 @@ export function createApi(resource: string) {
       const startTime = config?.metadata?.startTime;
       const duration = startTime ? Date.now() - startTime : 0;
 
-      console.log("\n❌ =============================");
-      console.log(`❌ ERROR ${fullUrl}`);
-      console.log("⏱️ Duration :", `${duration} ms`);
-      console.log("📊 Status :", error.response?.status);
-      console.log("📝 Message :", error.message);
-      console.log("📥 Response :", error.response?.data);
-      console.log("❌ =============================\n");
+      log("\n❌ =============================");
+      log(`❌ ERROR ${fullUrl}`);
+      log("⏱️ Duration :", `${duration} ms`);
+      log("📊 Status :", error.response?.status);
+      log("📝 Message :", error.message);
+      log("📥 Response :", error.response?.data);
+      log("❌ =============================\n");
 
       if (error.response?.status === 401) {
         await AsyncStorage.removeItem("token");

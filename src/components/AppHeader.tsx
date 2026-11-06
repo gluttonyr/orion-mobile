@@ -31,9 +31,12 @@ export function AppHeader(props: AppHeaderProps) {
           <Ionicons name="arrow-back" size={20} color={Palette.primary[500]} />
         </TouchableOpacity>
 
-        <View style={styles.center}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
+        <View style={[styles.center, styles.backCenter]}>
+          <OrionLogo size={28} boxed={false} />
+          <View style={styles.backTexts}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
+          </View>
         </View>
 
         {rightIcon && onRight ? (
@@ -121,6 +124,8 @@ export function AppHeader(props: AppHeaderProps) {
 }
 
 const styles = StyleSheet.create({
+  backCenter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  backTexts: { flexShrink: 1, alignItems: 'flex-start' },
   container: {
     flexDirection: 'row',
     alignItems: 'center',

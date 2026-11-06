@@ -72,6 +72,8 @@ export default function ClientLayout() {
       {/* Accessibles par navigation, sans onglet dédié */}
       <Tabs.Screen name="product" options={{ href: null }} />
       <Tabs.Screen name="cart" options={{ href: null }} />
+      <Tabs.Screen name="store" options={{ href: null }} />
+      <Tabs.Screen name="support" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -54,6 +54,10 @@ export default function LoginScreen() {
             </Pressable>
           </View>
 
+          <Link href={{ pathname: '/forgot-password', params: email.trim() ? { email: email.trim() } : {} } as any} asChild>
+            <Pressable style={styles.forgotLink} hitSlop={6} accessibilityRole="link"><Text style={styles.forgotText}>Mot de passe oublié ?</Text></Pressable>
+          </Link>
+
           <Pressable style={[styles.primaryButton, loading && styles.disabledButton]} onPress={handleLogin} disabled={loading}>
             <Text style={styles.primaryButtonText}>{loading ? 'Connexion…' : 'Se connecter'}</Text>
           </Pressable>
@@ -86,6 +90,8 @@ const styles = StyleSheet.create({
   label: { color: colors.ink, fontSize: 12, fontWeight: '700', marginBottom: 7, marginTop: 12 },
   inputWrap: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: '#FFFEFC', paddingHorizontal: 13 },
   input: { flex: 1, color: colors.ink, fontSize: 14, paddingVertical: 12 },
+  forgotLink: { alignSelf: 'flex-end', marginTop: 10 },
+  forgotText: { color: colors.burgundy, fontSize: 12, fontWeight: '800' },
   primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.burgundy, borderRadius: 13, marginTop: 22, shadowColor: colors.burgundyDark, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   disabledButton: { opacity: 0.65 },
   primaryButtonText: { color: colors.white, fontSize: 14, fontWeight: '800' },

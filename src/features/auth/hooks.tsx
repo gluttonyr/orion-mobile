@@ -7,6 +7,8 @@ interface AuthContextType {
   user: Utilisateur | null;
   login: (email: string, password: string) => Promise<boolean>;
   acceptSession: (user: Utilisateur, token: string) => Promise<void>;
+  /** Remplace l'utilisateur en session après une mise à jour du profil. */
+  updateUser: (user: Utilisateur) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isSeller: boolean;
@@ -63,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         login,
         acceptSession,
+        updateUser: setUser,
         logout,
         isAuthenticated: !!user,
         isSeller: user?.role === UserRole.COMMERCANT,

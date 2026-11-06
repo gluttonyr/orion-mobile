@@ -46,7 +46,7 @@ export default function RegisterScreen() {
     if (!form.nom.trim() || !form.prenom.trim() || !form.email.trim() || !form.phone.trim() || !form.password || !form.confirmPassword) {
       return Alert.alert('Informations manquantes', 'Renseignez tous les champs avant de continuer.');
     }
-    if (form.password.length < 4) return Alert.alert('Mot de passe', 'Le mot de passe doit contenir au moins 4 caractères.');
+    if (form.password.length < 8) return Alert.alert('Mot de passe', 'Le mot de passe doit contenir au moins 8 caractères.');
     if (form.password !== form.confirmPassword) return Alert.alert('Mot de passe', 'Les deux mots de passe ne correspondent pas.');
     setRegistrationStep(2);
   };

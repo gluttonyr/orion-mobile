@@ -7,12 +7,24 @@ import { EmptyState, SectionHeader, StatusBadge } from '../ui';
 import { colors, radius, spacing } from '../theme';
 import { type Opportunity } from '../shared';
 import { mission } from '@/service/mission.service';
+import { missionTypeService } from '@/service/mission-type.service';
+import { MissionCandidates } from '../MissionCandidates';
 import { toDesignOpportunity } from '@/features/redesign/mappers';
-import { StatutMission, TypePaiement, type Mission } from '@/model/model';
+import { TypePaiement, type Mission } from '@/model/model';
 import { checkFedaPayPayment, initMissionPublicationPayment } from '@/service/paiement.service';
 import { useToast } from '@/store/toast-store';
 
-export function OpportunitiesScreen() {
+export type OpportunityForm = { title: string; type: string; location: string; montant: number; frequencePaiement: TypePaiement; dureeMission: number; description: string; requis: string };
+
+const FREQUENCIES: { label: string; value: TypePaiement }[] = [
+  { label: 'Une seule fois', value: TypePaiement.FIXE },
+  { label: 'Par jour', value: TypePaiement.JOURNALIER },
+  { label: 'Par semaine', value: TypePaiement.HEBDOMADAIRE },
+  { label: 'Par mois', value: TypePaiement.MENSUEL },
+  { label: 'Par an', value: TypePaiement.ANNUEL },
+];
+
+export function OpportunitiesScreen({ onOpenMessages }: { onOpenMessages?: () => void } = {}) {
   const { showToast } = useToast();
   const [oppList, setOppList] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,18 +68,21 @@ export function OpportunitiesScreen() {
     }
   };
 
-  const handleSave = async (opp: Opportunity) => {
-    const amount = Number(opp.budget.replace(/[^0-9]/g, ''));
+  const handleSave = async (form: OpportunityForm) => {
     const payload: Partial<Mission> = {
-      titre: opp.title, type: opp.type, localisation: opp.location,
-      description: opp.description || '', descriptionCourte: (opp.description || '').slice(0, 180),
-      montant: amount, dureeMission: 1, frequencePaiement: TypePaiement.FIXE,
-      datePublication: new Date(), dateLimiteCandidature: new Date(Date.now() + 14 * 86400000),
-      requis: '', statut: opp.status === 'Fermée' ? StatutMission.ANNULEE : undefined,
+      titre: form.title.trim(), type: form.type, localisation: form.location.trim(),
+      description: form.description.trim(), descriptionCourte: form.description.trim().slice(0, 180),
+      montant: form.montant, dureeMission: form.dureeMission, frequencePaiement: form.frequencePaiement,
+      requis: form.requis.trim(),
     };
+    // Les dates ne sont fixées qu'à la création : modifier une mission ne doit pas les réinitialiser.
+    if (!editingOpp) {
+      payload.datePublication = new Date();
+      payload.dateLimiteCandidature = new Date(Date.now() + 14 * 86400000);
+    }
     setSaving(true);
     try {
-      if (editingOpp) await mission.update(Number(opp.id), payload);
+      if (editingOpp) await mission.update(Number(editingOpp.id), payload);
       else {
         const draft = await mission.create(payload);
         await loadMissions();
@@ -124,7 +139,7 @@ export function OpportunitiesScreen() {
       )}
 
       <OpportunityFormModal key={editingOpp?.id ?? 'new-opportunity'} visible={showForm} saving={saving} onClose={() => setShowForm(false)} onSave={handleSave} opp={editingOpp} />
-      <OpportunityDetailModal opp={detailOpp} publishing={publishingMissionId === Number(detailOpp?.id)} onPublish={() => void startPublicationPayment(Number(detailOpp?.id))} onClose={() => setDetailOpp(null)} onEdit={openEdit} onDelete={handleDelete} />
+      <OpportunityDetailModal onOpenMessages={onOpenMessages ? () => { setDetailOpp(null); onOpenMessages(); } : undefined} opp={detailOpp} publishing={publishingMissionId === Number(detailOpp?.id)} onPublish={() => void startPublicationPayment(Number(detailOpp?.id))} onClose={() => setDetailOpp(null)} onEdit={openEdit} onDelete={handleDelete} />
     </View>
   );
 }
@@ -138,29 +153,50 @@ function OpportunityFormModal({
 }: {
   visible: boolean;
   onClose: () => void;
-  onSave: (opp: Opportunity) => void | Promise<void>;
+  onSave: (form: OpportunityForm) => void | Promise<void>;
   saving: boolean;
   opp: Opportunity | null;
 }) {
+  const raw = opp?.raw;
   const [title, setTitle] = useState(opp?.title || '');
-  const [type, setType] = useState(opp?.type || 'Emploi');
+  const [type, setType] = useState(opp?.type || '');
   const [location, setLocation] = useState(opp?.location || '');
-  const [budget, setBudget] = useState(opp?.budget || '');
+  const [montant, setMontant] = useState(raw?.montant != null ? String(Math.round(Number(raw.montant))) : '');
+  const [frequency, setFrequency] = useState<TypePaiement>(raw?.frequencePaiement ?? TypePaiement.FIXE);
+  const [duration, setDuration] = useState(raw?.dureeMission ? String(raw.dureeMission) : '1');
   const [description, setDescription] = useState(opp?.description || '');
+  const [requis, setRequis] = useState(raw?.requis || '');
+  const [types, setTypes] = useState<string[]>([]);
+  const [typesLoading, setTypesLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    missionTypeService.getAll()
+      .then((rows) => {
+        if (!active) return;
+        const names = rows.map((row) => row.nom);
+        // Conserve un type archivé déjà utilisé par la mission modifiée.
+        if (opp?.type && !names.includes(opp.type)) names.push(opp.type);
+        setTypes(names);
+        setType((current) => current || names[0] || '');
+      })
+      .catch(() => { if (active) setTypes(opp?.type ? [opp.type] : []); })
+      .finally(() => { if (active) setTypesLoading(false); });
+    return () => { active = false; };
+  }, [opp?.type]);
 
   const handleSave = () => {
-    if (!title.trim()) return;
-    onSave({
-      id: opp?.id || '',
-      title,
-      type,
-      location: location || 'Lomé',
-      budget: budget || 'À négocier',
-      candidates: opp?.candidates || 0,
-      status: opp?.status === 'Fermée' ? 'Fermée' : 'Brouillon',
-      posted: opp?.posted || 'À l\'instant',
-      description,
-    });
+    const amount = Number(montant.replace(/[^0-9]/g, ''));
+    const months = Number(duration.replace(/[^0-9]/g, ''));
+    if (!title.trim() || !type || !location.trim() || !description.trim()) {
+      Alert.alert('Informations manquantes', 'Le titre, le type, la localisation et la description sont obligatoires.');
+      return;
+    }
+    if (!montant.trim() || !Number.isFinite(amount) || !months || months < 1) {
+      Alert.alert('Valeurs invalides', 'Indiquez un montant et une durée (en mois) valides.');
+      return;
+    }
+    void onSave({ title, type, location, montant: amount, frequencePaiement: frequency, dureeMission: months, description, requis });
   };
 
   return (
@@ -169,17 +205,22 @@ function OpportunityFormModal({
         <View style={styles.modalSheet}>
           <View style={styles.sheetHandle} />
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>{opp ? 'Modifier l\'opportunité' : 'Nouvelle opportunité'}</Text>
+            <Text style={styles.sheetTitle}>{opp ? "Modifier l'opportunité" : 'Nouvelle opportunité'}</Text>
             <Pressable style={styles.closeBtn} onPress={onClose}><Text style={styles.closeX}>✕</Text></Pressable>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-            <FormField label="Titre" value={title} onChangeText={setTitle} placeholder="Ex : Assistant commercial" />
-            <FormSelect label="Type d'offre" value={type} options={['Emploi', 'Freelance', 'Mission', 'Service', 'Formation', 'Livraison']} onSelect={setType} />
-            <FormField label="Localisation" value={location} onChangeText={setLocation} placeholder="Ex : Lomé" />
-            <FormField label="Budget / Rémunération" value={budget} onChangeText={setBudget} placeholder="Ex : 80 000 FCFA" keyboardType="numeric" />
-            <FormField label="Description" value={description} onChangeText={setDescription} placeholder="Décrivez l'opportunité, les prérequis, la durée..." multiline />
-            <Text style={styles.detailPosted}>La mission sera créée en brouillon et publiée seulement après confirmation des frais FedaPay de 500 FCFA.</Text>
-            <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }} keyboardShouldPersistTaps="handled">
+            <FormField label="Titre" value={title} onChangeText={setTitle} placeholder="Ex. Photographe produit pour..." />
+            {typesLoading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 10 }} /> : types.length ? (
+              <FormSelect label="Type de mission" value={type} options={types} onSelect={setType} />
+            ) : <Text style={styles.error}>Aucun type de mission disponible pour le moment.</Text>}
+            <FormField label="Localisation" value={location} onChangeText={setLocation} placeholder="Ville · À distance" />
+            <FormField label="Montant / rémunération (FCFA)" value={montant} onChangeText={setMontant} placeholder="Ex. 250000" keyboardType="numeric" />
+            <FormSelect label="Fréquence de rémunération" value={FREQUENCIES.find((item) => item.value === frequency)?.label ?? FREQUENCIES[0].label} options={FREQUENCIES.map((item) => item.label)} onSelect={(label) => setFrequency(FREQUENCIES.find((item) => item.label === label)?.value ?? TypePaiement.FIXE)} />
+            <FormField label="Durée de la mission (mois)" value={duration} onChangeText={setDuration} placeholder="Ex. 2" keyboardType="numeric" />
+            <FormField label="Description" value={description} onChangeText={setDescription} placeholder="Quel est le contexte, le besoin et le résultat attendu ?" multiline />
+            <FormField label="Prérequis (facultatif)" value={requis} onChangeText={setRequis} placeholder="Un prérequis par ligne" multiline />
+            {!opp ? <Text style={styles.detailPosted}>La mission sera créée en brouillon et publiée seulement après confirmation des frais FedaPay de 500 FCFA.</Text> : null}
+            <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving || typesLoading || !types.length}>
               {saving ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>{opp ? 'Enregistrer' : 'Créer et payer 500 FCFA'}</Text>}
             </Pressable>
           </ScrollView>
@@ -191,6 +232,7 @@ function OpportunityFormModal({
 
 function OpportunityDetailModal({
   opp,
+  onOpenMessages,
   publishing,
   onPublish,
   onClose,
@@ -198,6 +240,7 @@ function OpportunityDetailModal({
   onDelete,
 }: {
   opp: Opportunity | null;
+  onOpenMessages?: () => void;
   publishing: boolean;
   onPublish: () => void;
   onClose: () => void;
@@ -227,8 +270,10 @@ function OpportunityDetailModal({
             <Text style={styles.detailPosted}>Publiée {opp.posted}</Text>
             {opp.description ? <Text style={styles.detailPosted}>{opp.description}</Text> : null}
 
+            {opp.raw?.requis ? <Text style={styles.detailPosted}>Prérequis : {opp.raw.requis}</Text> : null}
+
             <SectionHeader title={`Candidats (${opp.candidates})`} />
-            <Text style={styles.detailPosted}>{opp.candidates > 0 ? `${opp.candidates} candidature(s) enregistrée(s).` : 'Aucune candidature pour le moment.'}</Text>
+            <MissionCandidates missionId={Number(opp.id)} onOpenMessages={onOpenMessages} />
 
             <View style={styles.detailActions}>
               {opp.status === 'Brouillon' ? <Pressable style={styles.saveBtn} onPress={onPublish} disabled={publishing}>{publishing ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>Payer 500 FCFA et publier</Text>}</Pressable> : null}
