@@ -17,7 +17,8 @@ export function ThemeModeProvider({ children }: PropsWithChildren) {
     return () => { active = false; };
   }, []);
   useEffect(() => {
-    Appearance.setColorScheme(mode);
+    // Indisponible sur le web (react-native-web) : on ignore plutôt que de planter.
+    if (typeof Appearance.setColorScheme === 'function') Appearance.setColorScheme(mode);
     void AsyncStorage.setItem(STORAGE_KEY, mode).catch(() => undefined);
   }, [mode]);
   const value = useMemo(() => ({ mode, toggle: () => setMode((current) => current === 'dark' ? 'light' : 'dark') }), [mode]);

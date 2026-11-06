@@ -329,7 +329,11 @@ export default function Index() {
 
   const displayName = [user?.prenom, user?.nom].filter(Boolean).join(' ') || user?.email || 'Membre Orion';
   const screen = tab === 'home' ? <HomeScreen onTab={setTab} displayName={displayName} isSeller={user?.role === 'COMMERCANT'} onOpenProfile={() => setTab('profile')} onOpenOpportunities={() => router.push('/(client)/opportunities')} onViewOpportunity={(id) => router.push(`/(client)/opportunities/${id}` as any)} onOpenMessages={() => user?.role === 'COMMERCANT' ? openDashboard('messages') : router.push('/(client)/messages')} onOpenWallet={() => user?.role === 'COMMERCANT' ? openDashboard() : Alert.alert('Espace commerçant', 'Cette section est réservée aux comptes commerçants.')} /> : tab === 'shorts' ? <ShortsScreen refreshKey={shortRefreshKey} onCreate={() => { void openClip(); }} /> : tab === 'live' ? <LiveCenterScreen onCreateClip={openClip} onOpenProfile={() => setTab('profile')} /> : tab === 'marketplace' ? <MarketplaceScreen /> : <ProfileScreen onTab={setTab} onDashboard={openDashboard} onLogout={() => { showToast('Vous êtes déconnecté.'); void logout(); }} displayName={displayName} isSeller={user?.role === 'COMMERCANT'} />;
-  return <SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><View style={[styles.app, dark && darkStyles.canvas, { maxWidth: contentWidth }]}>{screen}<View style={styles.bottomNav}>{[{ key: 'home' as Tab, label: 'Accueil', icon: Home }, { key: 'marketplace' as Tab, label: 'Marché', icon: LayoutGrid }, { key: 'shorts' as Tab, label: 'Shorts', icon: CirclePlay }, { key: 'live' as Tab, label: 'Live', icon: Radio }, { key: 'profile' as Tab, label: 'Profil', icon: UserRound }].map((item) => { const Icon = item.icon; const active = tab === item.key; return <Pressable key={item.key} style={styles.navItem} onPress={() => setTab(item.key)}><Icon size={21} color={active ? colors.burgundy : colors.muted} strokeWidth={active ? 2.5 : 1.8} /><Text style={[styles.navLabel, active && styles.navLabelActive]}>{item.label}</Text></Pressable>; })}<Pressable style={styles.floatingPlus} onPress={() => setCreateVisible(true)}><Plus size={24} color="white" strokeWidth={2.4} /></Pressable></View></View><CreateSheet visible={createVisible} onClose={() => setCreateVisible(false)} onCreateClip={openClip} /><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
+  return <SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><View style={[styles.app, dark && darkStyles.canvas, { maxWidth: contentWidth }]}>{screen}<View style={[styles.bottomNav, dark && darkStyles.bottomNav]}>{(() => {
+  const tabs: { key: Tab; label: string; icon: typeof Home }[] = [{ key: 'home', label: 'Accueil', icon: Home }, { key: 'marketplace', label: 'Marché', icon: LayoutGrid }, { key: 'shorts', label: 'Shorts', icon: CirclePlay }, { key: 'live', label: 'Live', icon: Radio }, { key: 'profile', label: 'Profil', icon: UserRound }];
+  const renderTab = (item: (typeof tabs)[number]) => { const Icon = item.icon; const active = tab === item.key; return <Pressable key={item.key} style={styles.navItem} onPress={() => setTab(item.key)} accessibilityRole="tab" accessibilityState={{ selected: active }}><View style={[styles.navIconWrap, active && styles.navIconWrapActive]}><Icon size={20} color={active ? colors.burgundy : colors.muted} strokeWidth={active ? 2.4 : 1.8} /></View><Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>{item.label}</Text></Pressable>; };
+  return <>{tabs.slice(0, 2).map(renderTab)}<Pressable style={styles.navCreateItem} onPress={() => setCreateVisible(true)} accessibilityRole="button" accessibilityLabel="Créer un Short, un live ou un produit"><View style={styles.floatingPlus}><Plus size={22} color="white" strokeWidth={2.6} /></View><Text style={styles.navCreateLabel}>Créer</Text></Pressable>{tabs.slice(2).map(renderTab)}</>;
+})()}</View></View><CreateSheet visible={createVisible} onClose={() => setCreateVisible(false)} onCreateClip={openClip} /><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
@@ -448,11 +452,15 @@ const styles = StyleSheet.create({
   playBadge: { position: 'absolute', bottom: 8, left: 8, width: 27, height: 27, borderRadius: 14, backgroundColor: colors.burgundy, alignItems: 'center', justifyContent: 'center' },
   shortMiniTitle: { color: colors.ink, fontSize: 11, fontWeight: '700' },
   bottomSpace: { height: 30 },
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 76, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: 'rgba(255,255,255,0.98)', flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingHorizontal: 8 },
-  navItem: { alignItems: 'center', justifyContent: 'center', width: 55, gap: 4 },
-  navLabel: { color: colors.muted, fontSize: 9, fontWeight: '600' },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 78, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 6, paddingBottom: 10, shadowColor: '#3a1420', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: -3 }, elevation: 8 },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
+  navIconWrap: { width: 40, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  navIconWrapActive: { backgroundColor: colors.burgundySoft },
+  navLabel: { color: colors.muted, fontSize: 10, fontWeight: '600' },
   navLabelActive: { color: colors.burgundy, fontWeight: '800' },
-  floatingPlus: { position: 'absolute', left: '50%', marginLeft: -24, top: -26, width: 48, height: 48, borderRadius: 24, backgroundColor: colors.burgundy, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: 'white', shadowColor: colors.burgundy, shadowOpacity: 0.3, shadowRadius: 9, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  navCreateItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
+  floatingPlus: { width: 46, height: 46, marginTop: -18, borderRadius: 16, backgroundColor: colors.burgundy, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'white', shadowColor: colors.burgundy, shadowOpacity: 0.32, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
+  navCreateLabel: { color: colors.burgundy, fontSize: 10, fontWeight: '800' },
   simpleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 20 },
   screenTitle: { color: colors.ink, fontSize: 25, fontWeight: '800', letterSpacing: -0.5 },
   screenSubtitle: { color: colors.muted, fontSize: 12, marginTop: 4 },
@@ -580,6 +588,6 @@ const styles = StyleSheet.create({
   dashboardCtaText: { color: 'white', fontSize: 13, fontWeight: '800', flex: 1 },
 });
 
-const darkStyles = StyleSheet.create({ canvas: { backgroundColor: '#15161B' } });
+const darkStyles = StyleSheet.create({ canvas: { backgroundColor: '#15161B' }, bottomNav: { backgroundColor: '#18191F', borderTopColor: '#2B2D35' } });
 
 
