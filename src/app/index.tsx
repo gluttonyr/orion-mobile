@@ -166,11 +166,11 @@ function HomeScreen({ onTab, displayName, isSeller, onOpenProfile, onOpenOpportu
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Header onSearch={() => onTab('marketplace')} onNotifications={() => Alert.alert('Notifications', 'Aucune notification pour le moment.')} onOpenProfile={onOpenProfile} />
       <LinearGradient colors={['#801432', '#610D2A', '#4F0B24']} style={styles.storefrontHero}>
-        <View pointerEvents="none" style={styles.heroOrnament}><View style={styles.heroOrnamentOuter}><View style={styles.heroOrnamentInner} /></View><View style={styles.heroOrnamentDot} /></View>
+        <View pointerEvents="none" style={styles.heroOrnament}><View style={styles.heroOrnamentOuter}><View style={styles.heroOrnamentInner} /></View></View>
         <Text style={styles.heroEyebrow}>PRODUITS AFRICAINS · TALENTS LOCAUX</Text>
         <Text style={styles.heroTitle}>Tout ce qu’il vous faut, au même endroit.</Text>
         <Text style={styles.heroSubtitle}>Bonjour {displayName.split(/\s+/)[0]}, découvrez les boutiques et les opportunités qui font avancer l’Afrique.</Text>
-        {siteImages.heroImages.length >= 3 ? <View style={styles.heroAdminImages}>{siteImages.heroImages.slice(0, 3).map((image, index) => <Image key={`${image}-${index}`} source={{ uri: uploadedImageUrl(image) }} style={[styles.heroAdminImage, index === 0 ? styles.heroAdminImageMain : index === 1 ? styles.heroAdminImageLeft : styles.heroAdminImageRight]} />)}</View> : heroProduct ? <Pressable style={styles.heroProductVisual} onPress={() => router.push(`/(client)/product/${heroProduct.id}` as any)}><View style={styles.heroProductHalo} /><Image source={{ uri: siteImages.heroImages[0] ? uploadedImageUrl(siteImages.heroImages[0]) : heroProduct.image }} style={styles.heroProductImage} /><View style={styles.heroProductTag}><Text style={styles.heroProductTagText}>À DÉCOUVRIR</Text></View></Pressable> : null}
+        {siteImages.heroImages.length >= 3 ? <View style={styles.heroAdminImages}>{[1, 0, 2].map((index) => { const image = siteImages.heroImages[index]; return <Image key={`${image}-${index}`} source={{ uri: uploadedImageUrl(image) }} style={[styles.heroAdminImage, index === 0 ? styles.heroAdminImageMain : index === 1 ? styles.heroAdminImageLeft : styles.heroAdminImageRight]} />; })}</View> : heroProduct ? <Pressable style={styles.heroProductVisual} onPress={() => router.push(`/(client)/product/${heroProduct.id}` as any)}><View style={styles.heroProductHalo} /><Image source={{ uri: siteImages.heroImages[0] ? uploadedImageUrl(siteImages.heroImages[0]) : heroProduct.image }} style={styles.heroProductImage} /><View style={styles.heroProductTag}><Text style={styles.heroProductTagText}>À DÉCOUVRIR</Text></View></Pressable> : null}
         <View style={styles.heroButtons}>
           <Pressable style={styles.heroPrimaryButton} onPress={() => onTab('marketplace')}><Text style={styles.heroPrimaryText}>Explorer le marché</Text><ArrowRight size={16} color={colors.burgundy} /></Pressable>
           <Pressable style={styles.heroSecondaryButton} onPress={onOpenOpportunities}><Text style={styles.heroSecondaryText}>Opportunités</Text></Pressable>
@@ -354,10 +354,10 @@ const styles = StyleSheet.create({
   iconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.soft, alignItems: 'center', justifyContent: 'center' },
   notificationDot: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, backgroundColor: colors.burgundy, borderRadius: 3, borderWidth: 1, borderColor: 'white' },
   storefrontHero: { minHeight: 326, borderRadius: 23, paddingHorizontal: 19, paddingTop: 20, paddingBottom: 17, marginTop: 10, marginBottom: 15, overflow: 'hidden', justifyContent: 'space-between' },
-  heroEyebrow: { color: '#F0D39F', fontSize: 9, fontWeight: '800', letterSpacing: 1, maxWidth: '76%' },
-  heroTitle: { color: '#FFFAF3', fontSize: 25, fontWeight: '900', lineHeight: 29, letterSpacing: -0.8, maxWidth: '73%', marginTop: 13 },
-  heroSubtitle: { color: '#F2DDE0', fontSize: 11, lineHeight: 16, maxWidth: '72%', marginTop: 8 },
-  heroButtons: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
+  heroEyebrow: { color: '#F0D39F', fontSize: 9, fontWeight: '800', letterSpacing: 1, maxWidth: '80%' },
+  heroTitle: { color: '#FFFAF3', fontSize: 25, fontWeight: '900', lineHeight: 29, letterSpacing: -0.8, maxWidth: '92%', marginTop: 13 },
+  heroSubtitle: { color: '#F2DDE0', fontSize: 12, lineHeight: 17, marginTop: 8 },
+  heroButtons: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16 },
   heroPrimaryButton: { minHeight: 40, borderRadius: 11, backgroundColor: '#FFF9F0', paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   heroPrimaryText: { color: colors.burgundy, fontSize: 10, fontWeight: '800' },
   heroSecondaryButton: { minHeight: 40, borderRadius: 11, borderWidth: 1, borderColor: 'rgba(255,245,230,0.55)', paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
@@ -369,12 +369,12 @@ const styles = StyleSheet.create({
   heroOrnamentOuter: { width: 108, height: 108, borderWidth: 1, borderColor: 'rgba(240,211,159,0.48)', transform: [{ rotate: '45deg' }], alignItems: 'center', justifyContent: 'center' },
   heroOrnamentInner: { width: 66, height: 66, borderWidth: 1, borderColor: 'rgba(240,211,159,0.4)' },
   heroOrnamentDot: { position: 'absolute', bottom: 28, left: 24, width: 7, height: 7, borderRadius: 4, backgroundColor: '#E8C789' },
-  heroProductVisual: { position: 'absolute', top: 99, right: 11, width: '39%', height: 139, alignItems: 'center', justifyContent: 'center' },
-  heroAdminImages: { position: 'absolute', top: 100, right: 10, width: '43%', height: 145 },
-  heroAdminImage: { position: 'absolute', borderRadius: 11, borderWidth: 3, borderColor: '#FFF4E4', backgroundColor: '#F7E7D3' },
-  heroAdminImageMain: { right: 0, top: 5, width: '72%', height: '83%', transform: [{ rotate: '3deg' }] },
-  heroAdminImageLeft: { left: 0, bottom: 0, width: '48%', height: '49%', transform: [{ rotate: '-7deg' }] },
-  heroAdminImageRight: { right: 0, bottom: -2, width: '43%', height: '40%', transform: [{ rotate: '7deg' }] },
+  heroProductVisual: { alignSelf: 'center', width: 150, height: 132, marginTop: 16, alignItems: 'center', justifyContent: 'center' },
+  heroAdminImages: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end', height: 136, marginTop: 18 },
+  heroAdminImage: { borderRadius: 14, borderWidth: 3, borderColor: '#FFF4E4', backgroundColor: '#F7E7D3', shadowColor: '#1E0510', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  heroAdminImageMain: { width: '38%', height: 132, zIndex: 2, elevation: 9 },
+  heroAdminImageLeft: { width: '29%', height: 104, marginRight: -14, marginBottom: 6, zIndex: 1, transform: [{ rotate: '-7deg' }] },
+  heroAdminImageRight: { width: '29%', height: 104, marginLeft: -14, marginBottom: 6, zIndex: 1, transform: [{ rotate: '7deg' }] },
   adminHomeCarousel: { paddingHorizontal: 18, gap: 10, marginTop: 14 },
   adminHomeCarouselImage: { width: 245, height: 110, borderRadius: 13, resizeMode: 'cover', backgroundColor: '#EFE6DB' },
   heroProductHalo: { position: 'absolute', width: 115, height: 115, borderRadius: 58, backgroundColor: 'rgba(245,221,188,0.88)' },
