@@ -142,6 +142,17 @@ export function ShortsFeed({ refreshKey, onCreate }: { refreshKey: number; onCre
         ListFooterComponent={loadingMore ? <ActivityIndicator color={colors.white} style={{ padding: 15 }} /> : null}
       />
       <View pointerEvents="none" style={styles.feedHeading}><Text style={styles.feedHeadingText}>SHORTS</Text></View>
+      {/* Publication toujours accessible, même quand le fil contient déjà des vidéos. */}
+      <Pressable
+        style={({ pressed }) => [styles.feedPublish, pressed && styles.feedPublishPressed]}
+        onPress={onCreate}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Publier un Short"
+      >
+        <Plus size={16} color={colors.white} strokeWidth={2.6} />
+        <Text style={styles.feedPublishText}>Publier</Text>
+      </Pressable>
     </View>
   );
 }
@@ -674,6 +685,9 @@ const styles = StyleSheet.create({
   feedRoot: { flex: 1, paddingBottom: 76, backgroundColor: colors.navy },
   shortPage: { backgroundColor: colors.navy, overflow: 'hidden' },
   feedHeading: { position: 'absolute', top: 17, alignSelf: 'center' },
+  feedPublish: { position: 'absolute', top: 10, right: 14, flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 13, borderRadius: 17, backgroundColor: 'rgba(132,20,56,0.92)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
+  feedPublishPressed: { opacity: 0.8, transform: [{ scale: 0.96 }] },
+  feedPublishText: { color: colors.white, fontSize: 13, fontWeight: '800' },
   feedHeadingText: { color: colors.white, fontWeight: '800', fontSize: 14, letterSpacing: 1.5 },
   shortTop: { position: 'absolute', top: 16, left: 17, right: 17, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   shortBadge: { color: 'rgba(255,255,255,0.82)', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
