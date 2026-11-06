@@ -11,7 +11,7 @@ export default function SellerLayout() {
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/login" />;
-  if (!isSeller) return <Redirect href="/(client)/home" />;
+  if (!isSeller) return <Redirect href="/" />;
 
   return (
     <SubscriptionProvider>

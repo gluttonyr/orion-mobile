@@ -39,7 +39,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DashboardLayout } from '@/components/dashboard/layout';
 import { DashboardHome } from '@/components/dashboard/screens/home';
@@ -242,19 +242,14 @@ function ProfileScreen({ onTab, onDashboard, onLogout, displayName, isSeller }: 
     <View style={styles.bottomSpace} />
   </ScrollView>;
 }
-function CreateSheet({ visible, onClose, onCreateClip }: { visible: boolean; onClose: () => void; onCreateClip: () => void }) {
-  const actions = [{ label: 'Créer un Short', icon: Video, accent: true, action: onCreateClip }, { label: 'Créer un Live', icon: Radio, action: () => onClose() }, { label: 'Ajouter un produit', icon: Package, action: () => onClose() }, { label: 'Créer une opportunité', icon: Sparkles, action: () => onClose() }];
-  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><View style={styles.modalBackdrop}><View style={styles.createSheet}><View style={styles.sheetHandle} /><View style={styles.sheetHeader}><View><Text style={styles.sheetTitle}>Créer dans ORION</Text><Text style={styles.cardSubtitle}>Une idée, plusieurs façons de la partager.</Text></View><Pressable onPress={onClose} style={styles.closeButton}><X size={18} color={colors.ink} /></Pressable></View>{actions.map((item) => { const Icon = item.icon; return <Pressable key={item.label} style={[styles.createAction, item.accent && styles.createActionAccent]} onPress={item.action}><View style={[styles.createActionIcon, item.accent && styles.createActionIconAccent]}><Icon size={20} color={item.accent ? 'white' : colors.burgundy} /></View><Text style={[styles.createActionText, item.accent && styles.createActionTextAccent]}>{item.label}</Text><ChevronRight size={18} color={item.accent ? 'white' : colors.muted} /></Pressable>; })}</View></View></Modal>;
-}
-
 export default function Index() {
   const { mode } = useThemeMode();
   const dark = mode === 'dark';
   const router = useRouter();
   const { isAuthenticated, isLoading, user, logout } = useAuth();
+  const { open } = useLocalSearchParams<{ open?: string }>();
   const { showToast } = useToast();
   const [tab, setTab] = useState<Tab>('home');
-  const [createVisible, setCreateVisible] = useState(false);
   const [clipVisible, setClipVisible] = useState(false);
   const [shortAsset, setShortAsset] = useState<ImagePickerAsset | null>(null);
   const [shortRefreshKey, setShortRefreshKey] = useState(0);
@@ -263,7 +258,6 @@ export default function Index() {
   const { width } = useWindowDimensions();
   const contentWidth = useMemo(() => Math.min(width, 480), [width]);
   const openClip = async () => {
-    setCreateVisible(false);
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Accès à la galerie', 'Autorise Orion à accéder à tes vidéos pour créer un Short.');
@@ -299,6 +293,11 @@ export default function Index() {
     setDashScreen(target);
     setShowDashboard(true);
   };
+  // Lien profond « ?open=dashboard » (ex. bouton « Espace vendeur » du compte).
+  useEffect(() => {
+    if (open === 'dashboard' && user) openDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user?.id]);
   const logoutFromDashboard = () => { showToast('Vous êtes déconnecté.'); void logout(); };
   const goToPublicHome = () => { setTab('home'); setShowDashboard(false); };
 
@@ -332,8 +331,8 @@ export default function Index() {
   return <SafeAreaView style={[styles.safeArea, dark && darkStyles.canvas]}><View style={[styles.app, dark && darkStyles.canvas, { maxWidth: contentWidth }]}>{screen}<View style={[styles.bottomNav, dark && darkStyles.bottomNav]}>{(() => {
   const tabs: { key: Tab; label: string; icon: typeof Home }[] = [{ key: 'home', label: 'Accueil', icon: Home }, { key: 'marketplace', label: 'Marché', icon: LayoutGrid }, { key: 'shorts', label: 'Shorts', icon: CirclePlay }, { key: 'live', label: 'Live', icon: Radio }, { key: 'profile', label: 'Profil', icon: UserRound }];
   const renderTab = (item: (typeof tabs)[number]) => { const Icon = item.icon; const active = tab === item.key; return <Pressable key={item.key} style={styles.navItem} onPress={() => setTab(item.key)} accessibilityRole="tab" accessibilityState={{ selected: active }}><View style={[styles.navIconWrap, active && styles.navIconWrapActive]}><Icon size={20} color={active ? colors.burgundy : colors.muted} strokeWidth={active ? 2.4 : 1.8} /></View><Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>{item.label}</Text></Pressable>; };
-  return <>{tabs.slice(0, 2).map(renderTab)}<Pressable style={styles.navCreateItem} onPress={() => setCreateVisible(true)} accessibilityRole="button" accessibilityLabel="Créer un Short, un live ou un produit"><View style={styles.floatingPlus}><Plus size={22} color="white" strokeWidth={2.6} /></View><Text style={styles.navCreateLabel}>Créer</Text></Pressable>{tabs.slice(2).map(renderTab)}</>;
-})()}</View></View><CreateSheet visible={createVisible} onClose={() => setCreateVisible(false)} onCreateClip={openClip} /><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
+  return <>{tabs.map(renderTab)}</>;
+})()}</View></View><ShortComposer visible={clipVisible} asset={shortAsset} onClose={closeComposer} onPublished={onShortPublished} onChooseAnother={openClip} /></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
@@ -452,15 +451,12 @@ const styles = StyleSheet.create({
   playBadge: { position: 'absolute', bottom: 8, left: 8, width: 27, height: 27, borderRadius: 14, backgroundColor: colors.burgundy, alignItems: 'center', justifyContent: 'center' },
   shortMiniTitle: { color: colors.ink, fontSize: 11, fontWeight: '700' },
   bottomSpace: { height: 30 },
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 78, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 6, paddingBottom: 10, shadowColor: '#3a1420', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: -3 }, elevation: 8 },
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 78, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 8, paddingBottom: 10, shadowColor: '#3a1420', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: -3 }, elevation: 8 },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
   navIconWrap: { width: 40, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   navIconWrapActive: { backgroundColor: colors.burgundySoft },
   navLabel: { color: colors.muted, fontSize: 10, fontWeight: '600' },
   navLabelActive: { color: colors.burgundy, fontWeight: '800' },
-  navCreateItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 3 },
-  floatingPlus: { width: 46, height: 46, marginTop: -18, borderRadius: 16, backgroundColor: colors.burgundy, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: 'white', shadowColor: colors.burgundy, shadowOpacity: 0.32, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6 },
-  navCreateLabel: { color: colors.burgundy, fontSize: 10, fontWeight: '800' },
   simpleHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 20 },
   screenTitle: { color: colors.ink, fontSize: 25, fontWeight: '800', letterSpacing: -0.5 },
   screenSubtitle: { color: colors.muted, fontSize: 12, marginTop: 4 },

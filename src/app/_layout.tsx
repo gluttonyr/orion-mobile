@@ -6,6 +6,7 @@ import { ImageProvider } from "@/store/image-store";
 import { LiveProvider } from "@/features/live/LiveContext";
 import { ThemeModeProvider, useThemeMode } from "@/store/theme-mode";
 import { ToastProvider } from "@/store/toast-store";
+import { AppSplash } from "@/components/AppSplash";
 
 function ThemeStatusBar() {
   const { mode } = useThemeMode();
@@ -25,6 +26,7 @@ export default function RootLayout() {
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="seller" />
             </Stack>
+            <AppSplash />
           </CartProvider>
         </ImageProvider>
       </LiveProvider>

@@ -76,7 +76,8 @@ export function AppHeader(props: AppHeaderProps) {
     );
   }
 
-  const { showBack } = props;
+  // Flèche retour automatique dès qu'il y a une page précédente (pages ouvertes depuis l'accueil).
+  const showBack = props.showBack ?? router.canGoBack();
   const { isAuthenticated, user } = useAuth();
   const { getTotalItems } = useCart();
   const initials = (`${(user?.prenom ?? '')[0] ?? ''}${(user?.nom ?? '')[0] ?? ''}`.toUpperCase() || 'U');

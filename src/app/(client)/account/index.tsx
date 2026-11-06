@@ -56,7 +56,7 @@ export default function AccountScreen() {
           </TouchableOpacity>
 
           {isSeller && (
-            <TouchableOpacity style={[styles.menuItem, styles.sellerItem]} onPress={() => router.push("/seller")}>
+            <TouchableOpacity style={[styles.menuItem, styles.sellerItem]} onPress={() => router.replace({ pathname: "/", params: { open: "dashboard" } } as any)}>
               <Ionicons name="storefront-outline" size={20} color={Palette.secondary[600]} />
               <Text style={[styles.menuText, { color: Palette.secondary[600] }]}>Espace vendeur</Text>
               <Ionicons name="chevron-forward" size={18} color={Palette.secondary[600]} />
