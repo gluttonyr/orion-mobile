@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "orion-mobile",
+    "name": "Orion",
     "slug": "orion-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,14 +8,13 @@
     "scheme": "orionmobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#7f1033",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundImage": "./assets/images/android-icon-background.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.koufessi_roland.orionmobile"
@@ -37,13 +36,16 @@
           },
           "ios": {
             "backgroundColor": "#FAF8F7"
-          }
+          },
+          "image": "./assets/images/splash-icon.png"
         }
       ],
       "expo-video",
       [
         "expo-location",
-        { "locationWhenInUsePermission": "Autorisez Orion à utiliser votre position pour localiser votre boutique." }
+        {
+          "locationWhenInUsePermission": "Autorisez Orion à utiliser votre position pour localiser votre boutique."
+        }
       ]
     ],
     "experiments": {

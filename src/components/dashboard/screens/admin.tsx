@@ -13,6 +13,11 @@ type AdminUser = { id: number; nom: string; prenom: string; email: string; role:
 type AdminOrder = { id: number; reference: string; date_achat: string; prix_total: number; statut: string; utilisateur?: { email?: string; prenom?: string; nom?: string }; produits?: Array<{ nom: string }> };
 type AdminWallet = { solde: number; totalCommissions: number; totalRemboursements: number };
 type SiteSettings = { heroImages: string[]; carouselImages: string[] };
+const toSettings = (data: unknown): SiteSettings => {
+  const record = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const list = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+  return { heroImages: list(record.heroImages), carouselImages: list(record.carouselImages) };
+};
 type Props = { screen: DashboardScreen };
 
 export function AdminScreen({ screen }: Props) {
@@ -37,7 +42,7 @@ export function AdminScreen({ screen }: Props) {
         if (screen === 'admin-users') setUsers((await adminApi.get<AdminUser[]>('/users')).data);
         else if (screen === 'admin-orders') setOrders((await adminApi.get<AdminOrder[]>('/orders')).data);
         else if (screen === 'admin-wallet') setWallet((await adminApi.get<AdminWallet>('/wallet')).data);
-        else if (screen === 'admin-settings') setSettings((await publicSettingsApi.get<SiteSettings>('/')).data);
+        else if (screen === 'admin-settings') setSettings(toSettings((await publicSettingsApi.get('/')).data));
         else if (screen === 'admin-store-categories') setStoreCategories(await boutiqueCategorieService.getAll());
       } catch (reason) { if (mounted) setError((reason as any)?.response?.data?.message ?? 'Impossible de charger les informations.'); }
       finally { if (mounted) setLoading(false); }
@@ -62,7 +67,7 @@ export function AdminScreen({ screen }: Props) {
       heroFiles.forEach((file, index) => body.append('heroImagesFiles', { uri: file.uri, name: file.fileName ?? `hero-${index}.jpg`, type: file.mimeType ?? 'image/jpeg' } as any));
       carouselFiles.forEach((file, index) => body.append('carouselImagesFiles', { uri: file.uri, name: file.fileName ?? `carousel-${index}.jpg`, type: file.mimeType ?? 'image/jpeg' } as any));
       const result = (await adminApi.put<SiteSettings>('/site-settings', body, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
-      setSettings(result); setHeroFiles([]); setCarouselFiles([]); Alert.alert('Enregistré', 'Les images de la page d’accueil ont été mises à jour.');
+      setSettings(toSettings(result)); setHeroFiles([]); setCarouselFiles([]); Alert.alert('Enregistré', 'Les images de la page d’accueil ont été mises à jour.');
     } catch (reason) { setError((reason as any)?.response?.data?.message ?? 'Impossible d’enregistrer les images.'); }
     finally { setSaving(false); }
   };

@@ -70,6 +70,12 @@ import { ShortComposer, ShortsFeed } from '@/features/shorts/ShortsMobile';
 
 const publicSiteSettingsApi = createApi('site-settings');
 type PublicSiteImages = { heroImages: string[]; carouselImages: string[] };
+const imageList = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length > 0) : [];
+/** L'API peut omettre un champ (ex. « carouselImages » remplacé par « carouselProductIds ») : on ne fait jamais confiance à sa forme. */
+const toSiteImages = (data: unknown): PublicSiteImages => {
+  const record = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  return { heroImages: imageList(record.heroImages), carouselImages: imageList(record.carouselImages) };
+};
 import { LiveCenterScreen } from '@/features/live/LiveCenterScreen';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { LiveAvatar } from '@/components/LiveAvatar';
@@ -145,7 +151,7 @@ function HomeScreen({ onTab, displayName, isSeller, onOpenProfile, onOpenOpportu
   const products = apiProducts.map(toDesignProduct);
   const categories = Array.from(new Set(products.map((product) => product.category).filter(Boolean))).slice(0, 8);
   const heroProduct = products[0];
-  useEffect(() => { let mounted = true; publicSiteSettingsApi.get<PublicSiteImages>('/').then(({ data }) => { if (mounted) setSiteImages(data); }).catch(() => undefined); return () => { mounted = false; }; }, []);
+  useEffect(() => { let mounted = true; publicSiteSettingsApi.get('/').then(({ data }) => { if (mounted) setSiteImages(toSiteImages(data)); }).catch(() => undefined); return () => { mounted = false; }; }, []);
   const addProductToCart = (id: string) => {
     const product = products.find((item) => item.id === id);
     const record = apiProducts.find((item) => String(item.id) === id);
