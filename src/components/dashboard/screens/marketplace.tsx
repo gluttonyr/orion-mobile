@@ -1,16 +1,34 @@
 import { Heart, Search, ShoppingBag } from 'lucide-react-native';
-import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SectionHeader } from '../ui';
 import { colors, radius, spacing } from '../theme';
-import { products } from '../shared';
+import { useProducts } from '@/features/products/hooks';
+import { getSellingProductPrice } from '@/features/products/pricing';
+import { toDesignProduct } from '@/features/redesign/mappers';
+import { useCart } from '@/store/cart-store';
+import { useToast } from '@/store/toast-store';
 
+/** Marketplace du tableau de bord : vrais produits publiés (auparavant des données d'exemple). */
 export function MarketplaceScreen() {
+  const router = useRouter();
+  const { showToast } = useToast();
+  const { addToCart } = useCart();
+  const { products: apiProducts, loading, error } = useProducts();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Tout');
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const categories = ['Tout', 'Chaussures', 'Vêtements', 'Accessoires', 'Électronique', 'Beauté', 'Maison'];
+  const products = useMemo(() => apiProducts.map(toDesignProduct), [apiProducts]);
+  const categories = useMemo(() => ['Tout', ...Array.from(new Set(products.map((product) => product.category)))], [products]);
+  const openProduct = (id: string) => router.push(`/(client)/product/${id}` as any);
+  const addProduct = (id: string) => {
+    const item = apiProducts.find((entry) => String(entry.id) === id);
+    if (!item) return;
+    addToCart({ id, name: item.nom, price: getSellingProductPrice(item), image: toDesignProduct(item).image, seller: item.boutiqueNom ?? 'Orion' });
+    showToast(`${item.nom} a été ajouté au panier.`);
+  };
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = category === 'Tout' || p.category === category;
@@ -46,7 +64,9 @@ export function MarketplaceScreen() {
 
       <SectionTitle title={`Produits populaires (${filtered.length})`} />
 
-      {filtered.length === 0 ? (
+      {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 28 }} /> : error ? (
+        <View style={styles.empty}><Text style={styles.emptyText}>{error}</Text></View>
+      ) : filtered.length === 0 ? (
         <View style={styles.empty}><Text style={styles.emptyText}>Aucun produit trouvé.</Text></View>
       ) : (
         <View style={styles.productGrid}>
@@ -54,6 +74,7 @@ export function MarketplaceScreen() {
             const isFav = favorites.includes(product.id);
             return (
               <View key={product.id} style={styles.productCard}>
+                <Pressable onPress={() => openProduct(product.id)} accessibilityRole="button" accessibilityLabel={`Voir ${product.name}`}>
                 <View style={styles.productImageWrap}>
                   <Image source={{ uri: product.image }} style={styles.productImage} />
                   <Pressable style={styles.favoriteBtn} onPress={() => toggleFav(product.id)}>
@@ -63,7 +84,8 @@ export function MarketplaceScreen() {
                 <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
                 <Text style={styles.productShop}>{product.category}</Text>
                 <Text style={styles.productPrice}>{product.price}</Text>
-                <Pressable style={styles.addToCartBtn}>
+                </Pressable>
+                <Pressable style={styles.addToCartBtn} onPress={() => addProduct(product.id)}>
                   <ShoppingBag size={13} color={colors.burgundy} />
                   <Text style={styles.addToCartText}>Ajouter</Text>
                 </Pressable>
