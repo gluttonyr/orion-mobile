@@ -63,6 +63,24 @@ export default function AccountScreen() {
             </TouchableOpacity>
           )}
 
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(client)/support/help" as any)}>
+            <Ionicons name="help-buoy-outline" size={20} color={Palette.primary[500]} />
+            <Text style={styles.menuText}>Centre d’aide</Text>
+            <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(client)/support/conditions" as any)}>
+            <Ionicons name="document-text-outline" size={20} color={Palette.primary[500]} />
+            <Text style={styles.menuText}>Conditions d’utilisation</Text>
+            <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(client)/support/about" as any)}>
+            <Ionicons name="information-circle-outline" size={20} color={Palette.primary[500]} />
+            <Text style={styles.menuText}>À propos d’Orion</Text>
+            <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.menuItem, styles.lastMenuItem]} onPress={logout}>
             <Ionicons name="log-out-outline" size={20} color={Palette.danger.base} />
             <Text style={[styles.menuText, { color: Palette.danger.base }]}>Se déconnecter</Text>

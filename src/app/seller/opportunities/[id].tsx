@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useOpportunity } from "@/features/opportunities/hooks";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
+import { MissionCandidates } from "@/components/dashboard/MissionCandidates";
 import { Palette, Radius, Spacing, BottomTabInset } from "@/constants/theme";
 import { formatCurrency } from "@/lib/format";
 import { Button, Card, Chip, EmptyState, StatTile, type ChipTone } from "@/components/ui";
@@ -121,30 +122,7 @@ export default function SellerOpportunityDetailScreen() {
         {/* Candidatures */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Candidatures ({candidatures.length})</Text>
-          {candidatures.length === 0 ? (
-            <View style={styles.emptySection}>
-              <Ionicons name="people-outline" size={32} color={Palette.neutral[300]} />
-              <Text style={styles.emptySectionText}>Aucune candidature reçue</Text>
-            </View>
-          ) : (
-            <View style={styles.candList}>
-              {candidatures.slice(0, 5).map((c: any, i: number) => (
-                <View key={i} style={styles.candItem}>
-                  <View style={styles.candAvatar}>
-                    <Text style={styles.candAvatarText}>{(c.nom ?? "?")[0].toUpperCase()}</Text>
-                  </View>
-                  <View style={styles.candInfo}>
-                    <Text style={styles.candName}>{c.nom ?? `Candidat ${i + 1}`}</Text>
-                    <Text style={styles.candDate}>{c.dateSoumission ? new Date(c.dateSoumission).toLocaleDateString("fr-FR") : "Récemment"}</Text>
-                  </View>
-                  <Chip label={c.statut ?? "En attente"} tone={candidatureTone(c.statut)} size="sm" />
-                </View>
-              ))}
-              {candidatures.length > 5 && (
-                <Text style={styles.moreText}>+{candidatures.length - 5} autres candidatures</Text>
-              )}
-            </View>
-          )}
+          <MissionCandidates missionId={opp.id} onOpenMessages={() => router.push("/seller/messages")} />
         </Card>
 
         {/* Actions */}

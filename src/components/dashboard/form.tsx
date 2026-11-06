@@ -9,10 +9,12 @@ export function FormField({
   multiline,
   keyboardType,
   helper,
+  onBlur,
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   multiline?: boolean;
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
@@ -25,6 +27,7 @@ export function FormField({
         style={[styles.input, multiline && styles.multiline]}
         value={value}
         onChangeText={onChangeText}
+        onBlur={onBlur}
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         multiline={multiline}

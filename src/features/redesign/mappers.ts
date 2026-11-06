@@ -64,5 +64,6 @@ export function toDesignOpportunity(value: Mission): Opportunity {
     status: status.includes('annul') ? ('Ferm' + String.fromCharCode(233) + 'e') as Opportunity['status'] : status === 'brouillon' || value.publicationPayee === false ? 'Brouillon' : 'Ouverte',
     posted: value.datePublication ? new Date(value.datePublication).toLocaleDateString('fr-FR') : '',
     description: value.description ?? value.descriptionCourte ?? '',
+    raw: value,
   };
 }

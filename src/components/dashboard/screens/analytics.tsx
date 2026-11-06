@@ -1,105 +1,139 @@
-import { BarChart3, TrendingUp, Users, Package, ShoppingBag } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BarChart3, TrendingUp, Package, ShoppingBag, Receipt } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SectionHeader } from '../ui';
 import { colors, radius, spacing } from '../theme';
+import { ordersApi, type SellerAnalytics } from '@/features/orders/api';
+import { formatFcfa } from '@/features/redesign/mappers';
 
+const PERIODS = [
+  { key: '7', label: '7 jours', days: 7 },
+  { key: '30', label: '30 jours', days: 30 },
+  { key: 'month', label: 'Ce mois', days: 0 },
+  { key: '90', label: '90 jours', days: 90 },
+] as const;
+type PeriodKey = (typeof PERIODS)[number]['key'];
+
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function periodRange(key: PeriodKey) {
+  const now = new Date();
+  const period = PERIODS.find((item) => item.key === key) ?? PERIODS[1];
+  const start = period.days ? new Date(now.getTime() - (period.days - 1) * 86400000) : new Date(now.getFullYear(), now.getMonth(), 1);
+  return { from: dateKey(start), to: dateKey(now) };
+}
+
+/** Analyses commerçant — mêmes données réelles que /dashboard/analytics sur le web. */
 export function AnalyticsScreen() {
-  const monthlyData = [
-    { month: 'Mar', value: 65 },
-    { month: 'Avr', value: 80 },
-    { month: 'Mai', value: 72 },
-    { month: 'Juin', value: 95 },
-    { month: 'Juil', value: 88 },
-    { month: 'Août', value: 110 },
-  ];
-  const maxVal = Math.max(...monthlyData.map((d) => d.value));
+  const [period, setPeriod] = useState<PeriodKey>('30');
+  const [data, setData] = useState<SellerAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const topProducts = [
-    { name: 'Nike Air Max blanc', sales: 142, revenue: '3 550 000 FCFA' },
-    { name: 'Robe wax moderne', sales: 87, revenue: '3 045 000 FCFA' },
-    { name: 'Sac en cuir tressé', sales: 56, revenue: '1 036 000 FCFA' },
-    { name: 'Montre Casio noir', sales: 34, revenue: '612 000 FCFA' },
-  ];
+  useEffect(() => {
+    let active = true;
+    const { from, to } = periodRange(period);
+    setLoading(true);
+    ordersApi.getSellerAnalytics(from, to)
+      .then((result) => { if (active) { setData(result); setError(''); } })
+      .catch((reason: any) => { if (active) setError(reason?.response?.data?.message || 'Impossible de charger vos analyses.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [period]);
+
+  // Regroupe la série quotidienne en au plus 8 barres lisibles.
+  const bars = useMemo(() => {
+    const series = data?.series ?? [];
+    if (!series.length) return [];
+    const size = Math.max(1, Math.ceil(series.length / 8));
+    const groups: { label: string; value: number }[] = [];
+    for (let index = 0; index < series.length; index += size) {
+      const chunk = series.slice(index, index + size);
+      const date = new Date(`${chunk[0].date}T00:00:00`);
+      groups.push({ label: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }), value: chunk.reduce((total, row) => total + row.revenue, 0) });
+    }
+    return groups;
+  }, [data]);
+  const maxVal = Math.max(1, ...bars.map((bar) => bar.value));
+  const summary = data?.summary ?? { revenue: 0, orderCount: 0, unitsSold: 0, averageOrderValue: 0 };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Analyses</Text>
-        <Text style={styles.subtitle}>Performance de votre activité</Text>
+        <Text style={styles.subtitle}>Ventes payées de vos boutiques</Text>
       </View>
 
-      <View style={styles.kpiRow}>
-        {[
-          { label: 'Revenu total', value: '8,2 M FCFA', icon: TrendingUp, delta: '+18%' },
-          { label: 'Commandes', value: '1 086', icon: ShoppingBag, delta: '+12%' },
-          { label: 'Clients uniques', value: '1 240', icon: Users, delta: '+5%' },
-          { label: 'Panier moyen', value: '7 540 FCFA', icon: Package, delta: '+3%' },
-        ].map((kpi) => {
-          const Icon = kpi.icon;
-          return (
-            <View key={kpi.label} style={styles.kpiCard}>
-              <View style={styles.kpiIconRow}>
-                <View style={styles.kpiIcon}><Icon size={16} color={colors.burgundy} /></View>
-                <Text style={styles.kpiDelta}>{kpi.delta}</Text>
-              </View>
-              <Text style={styles.kpiValue}>{kpi.value}</Text>
-              <Text style={styles.kpiLabel}>{kpi.label}</Text>
-            </View>
-          );
-        })}
+      <View style={styles.periodRow}>
+        {PERIODS.map((item) => (
+          <Pressable key={item.key} style={[styles.periodChip, period === item.key && styles.periodChipActive]} onPress={() => setPeriod(item.key)}>
+            <Text style={[styles.periodText, period === item.key && styles.periodTextActive]}>{item.label}</Text>
+          </Pressable>
+        ))}
       </View>
 
-      <SectionHeader title="Évolution des ventes" action="6 mois" />
-      <View style={styles.chartCard}>
-        <View style={styles.chartArea}>
-          {monthlyData.map((d, i) => (
-            <View key={i} style={styles.barCol}>
-              <View style={styles.barWrap}>
-                <View style={[styles.bar, { height: `${(d.value / maxVal) * 100}%` }]} />
+      {loading ? <ActivityIndicator color={colors.burgundy} style={{ marginVertical: 24 }} /> : error ? <Text style={styles.errorText}>{error}</Text> : <>
+        <View style={styles.kpiRow}>
+          {[
+            { label: 'Chiffre d’affaires', value: formatFcfa(summary.revenue), icon: TrendingUp },
+            { label: 'Commandes', value: String(summary.orderCount), icon: Receipt },
+            { label: 'Articles vendus', value: String(summary.unitsSold), icon: ShoppingBag },
+            { label: 'Panier moyen', value: formatFcfa(summary.averageOrderValue), icon: Package },
+          ].map((kpi) => {
+            const Icon = kpi.icon;
+            return (
+              <View key={kpi.label} style={styles.kpiCard}>
+                <View style={styles.kpiIconRow}><View style={styles.kpiIcon}><Icon size={16} color={colors.burgundy} /></View></View>
+                <Text style={styles.kpiValue}>{kpi.value}</Text>
+                <Text style={styles.kpiLabel}>{kpi.label}</Text>
               </View>
-              <Text style={styles.barLabel}>{d.month}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
-      </View>
 
-      <SectionHeader title="Top produits" action="Voir tout" />
-      <View style={styles.topList}>
-        {topProducts.map((product, i) => (
-          <View key={i} style={styles.topRow}>
-            <View style={styles.rankBadge}><Text style={styles.rankText}>{i + 1}</Text></View>
-            <View style={styles.flex}>
-              <Text style={styles.topName} numberOfLines={1}>{product.name}</Text>
-              <Text style={topProducts.length > 0 ? styles.topSales : styles.topSales}>{product.sales} ventes · {product.revenue}</Text>
+        <SectionHeader title="Évolution des ventes" action={PERIODS.find((item) => item.key === period)?.label} />
+        <View style={styles.chartCard}>
+          {bars.length === 0 ? <Text style={styles.emptyText}>Aucune vente sur cette période.</Text> : (
+            <View style={styles.chartArea}>
+              {bars.map((bar, index) => (
+                <View key={index} style={styles.barCol}>
+                  <View style={styles.barWrap}><View style={[styles.bar, { height: `${Math.max(2, (bar.value / maxVal) * 100)}%` }]} /></View>
+                  <Text style={styles.barLabel}>{bar.label}</Text>
+                </View>
+              ))}
             </View>
-            <BarChart3 size={18} color={colors.muted} />
-          </View>
-        ))}
-      </View>
+          )}
+        </View>
 
-      <SectionHeader title="Répartition des ventes" action="Par catégorie" />
-      <View style={styles.catList}>
-        {[
-          { name: 'Chaussures', pct: 42, color: colors.burgundy },
-          { name: 'Vêtements', pct: 31, color: colors.green },
-          { name: 'Accessoires', pct: 19, color: colors.gold },
-          { name: 'Autres', pct: 8, color: colors.muted },
-        ].map((cat) => (
-          <View key={cat.name} style={styles.catRow}>
-            <View style={styles.catInfo}>
-              <View style={[styles.catDot, { backgroundColor: cat.color }]} />
-              <Text style={styles.catName}>{cat.name}</Text>
-            </View>
-            <View style={styles.catBarWrap}>
-              <View style={styles.catBarBg}>
-                <View style={[styles.catBar, { width: `${cat.pct}%`, backgroundColor: cat.color }]} />
+        <SectionHeader title="Top produits" />
+        <View style={styles.topList}>
+          {data?.topProducts.length ? data.topProducts.slice(0, 5).map((product, index) => (
+            <View key={product.produitId} style={styles.topRow}>
+              <View style={styles.rankBadge}><Text style={styles.rankText}>{index + 1}</Text></View>
+              <View style={styles.flex}>
+                <Text style={styles.topName} numberOfLines={1}>{product.name}</Text>
+                <Text style={styles.topSales}>{product.quantity} vendu{product.quantity > 1 ? 's' : ''} · {formatFcfa(product.revenue)}</Text>
               </View>
-              <Text style={styles.catPct}>{cat.pct}%</Text>
+              <BarChart3 size={18} color={colors.muted} />
             </View>
-          </View>
-        ))}
-      </View>
+          )) : <Text style={styles.emptyText}>Vos meilleurs produits apparaîtront après vos premières ventes.</Text>}
+        </View>
+
+        <SectionHeader title="Commandes récentes" />
+        <View style={styles.topList}>
+          {data?.recentOrders.length ? data.recentOrders.slice(0, 5).map((order) => (
+            <View key={order.venteId} style={styles.topRow}>
+              <View style={styles.flex}>
+                <Text style={styles.topName} numberOfLines={1}>{order.reference || `Commande #${order.venteId}`}</Text>
+                <Text style={styles.topSales} numberOfLines={1}>{new Date(order.date).toLocaleDateString('fr-FR')} · {order.articles.map((article) => `${article.nom} × ${article.quantite}`).join(', ')}</Text>
+              </View>
+              <Text style={styles.topName}>{formatFcfa(order.montant)}</Text>
+            </View>
+          )) : <Text style={styles.emptyText}>Aucune commande sur cette période.</Text>}
+        </View>
+      </>}
     </View>
   );
 }
@@ -109,11 +143,15 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.sm },
   title: { color: colors.ink, fontSize: 24, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 13, marginTop: 4 },
+  periodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.sm },
+  periodChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.white },
+  periodChipActive: { backgroundColor: colors.burgundy, borderColor: colors.burgundy },
+  periodText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  periodTextActive: { color: colors.white },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: spacing.sm },
   kpiCard: { flex: 1, minWidth: '47%', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 16 },
   kpiIconRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   kpiIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: colors.burgundySoft, alignItems: 'center', justifyContent: 'center' },
-  kpiDelta: { color: colors.green, fontSize: 11, fontWeight: '700' },
   kpiValue: { color: colors.ink, fontSize: 18, fontWeight: '800', marginTop: 10 },
   kpiLabel: { color: colors.muted, fontSize: 11, marginTop: 4 },
   chartCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 20, marginBottom: spacing.lg },
@@ -121,21 +159,14 @@ const styles = StyleSheet.create({
   barCol: { flex: 1, alignItems: 'center' },
   barWrap: { flex: 1, width: 28, justifyContent: 'flex-end', alignItems: 'center' },
   bar: { width: 22, backgroundColor: colors.burgundy, borderRadius: 6 },
-  barLabel: { color: colors.muted, fontSize: 11, marginTop: 8, fontWeight: '600' },
+  barLabel: { color: colors.muted, fontSize: 10, marginTop: 8, fontWeight: '600' },
   topList: { marginBottom: spacing.lg },
-  topRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
-  rankBadge: { width: 28, height: 28, borderRadius: 8, backgroundColor: colors.burgundySoft, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line },
+  rankBadge: { width: 28, height: 28, borderRadius: 8, backgroundColor: colors.burgundySoft, alignItems: 'center', justifyContent: 'center', marginRight: 4 },
   rankText: { color: colors.burgundy, fontSize: 13, fontWeight: '800' },
   flex: { flex: 1 },
   topName: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   topSales: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  catList: { gap: 14 },
-  catRow: { gap: 6 },
-  catInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  catDot: { width: 10, height: 10, borderRadius: 5 },
-  catName: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  catBarWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  catBarBg: { flex: 1, height: 8, backgroundColor: colors.soft, borderRadius: 4, overflow: 'hidden' },
-  catBar: { height: 8, borderRadius: 4 },
-  catPct: { color: colors.muted, fontSize: 11, fontWeight: '700', width: 36, textAlign: 'right' },
+  emptyText: { color: colors.muted, fontSize: 13, paddingVertical: 12 },
+  errorText: { color: colors.burgundy, fontSize: 13, paddingVertical: 12 },
 });

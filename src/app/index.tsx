@@ -4,8 +4,11 @@ import {
   ArrowRight,
   ChevronRight,
   CirclePlay,
+  FileText,
   Heart,
   Home,
+  Info,
+  LifeBuoy,
   LayoutGrid,
   MessageCircle,
   Package,
@@ -213,6 +216,11 @@ function MarketplaceScreen() {
     <View style={styles.bottomSpace} />
   </ScrollView>;
 }
+function SupportLinks() {
+  const router = useRouter();
+  const links: [string, typeof Store, string][] = [['Centre d’aide', LifeBuoy, '/(client)/support/help'], ['Conditions d’utilisation', FileText, '/(client)/support/conditions'], ['À propos d’Orion', Info, '/(client)/support/about']];
+  return <>{links.map(([label, IconComponent, href]) => <Pressable key={label} style={styles.profileMenu} onPress={() => router.push(href as any)}><View style={styles.profileMenuIcon}><IconComponent size={19} color={colors.burgundy} /></View><Text style={styles.profileMenuText}>{label}</Text><ChevronRight size={18} color={colors.muted} /></Pressable>)}</>;
+}
 function ProfileScreen({ onTab, onDashboard, onLogout, displayName, isSeller }: { onTab: (tab: Tab) => void; onDashboard: () => void; onLogout: () => void; displayName: string; isSeller: boolean }) {
   return <ScrollView contentContainerStyle={styles.scrollContent}>
     <View style={styles.profileHeader}>
@@ -223,6 +231,7 @@ function ProfileScreen({ onTab, onDashboard, onLogout, displayName, isSeller }: 
     <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.profileBanner}><Text style={styles.profileBannerEyebrow}>VOTRE ÉCOSYSTÈME</Text><Text style={styles.profileBannerTitle}>Créez une fois.{ '\n' }Vendez partout.</Text><Text style={styles.profileBannerText}>Boutique · Shorts · Live · Clients</Text></LinearGradient>
     <Pressable style={styles.dashboardCta} onPress={onDashboard}><Store size={19} color="white" /><Text style={styles.dashboardCtaText}>{isSeller ? 'Dashboard commerçant' : 'Mon espace personnel'}</Text><ChevronRight size={18} color="white" /></Pressable>
     {[['Marketplace', LayoutGrid, 'marketplace'], ['Mes Shorts', CirclePlay, 'shorts'], ['Live Center', Radio, 'live']].map(([label, Icon, tab]) => { const IconComponent = Icon as typeof Store; return <Pressable key={label as string} style={styles.profileMenu} onPress={() => onTab(tab as Tab)}><View style={styles.profileMenuIcon}><IconComponent size={19} color={colors.burgundy} /></View><Text style={styles.profileMenuText}>{label as string}</Text><ChevronRight size={18} color={colors.muted} /></Pressable>; })}
+    <SupportLinks />
     <Pressable style={styles.outlineCta} onPress={onLogout}><Text style={styles.outlineCtaText}>Se déconnecter</Text></Pressable>
     <View style={styles.bottomSpace} />
   </ScrollView>;
@@ -305,7 +314,7 @@ export default function Index() {
       : dashScreen === 'wallet' ? <WalletScreen onNavigate={() => setDashScreen('withdrawal-methods')} />
       : dashScreen === 'withdrawal-methods' ? <WithdrawalMethodsScreen />
       : dashScreen === 'analytics' ? <AnalyticsScreen />
-      : dashScreen === 'opportunities' ? <OpportunitiesScreen />
+      : dashScreen === 'opportunities' ? <OpportunitiesScreen onOpenMessages={() => setDashScreen('messages')} />
       : dashScreen === 'subscriptions' ? <SubscriptionsScreen />
       : dashScreen === 'messages' ? <MessagesScreen />
       : <DashboardProfile />;

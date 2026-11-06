@@ -26,6 +26,17 @@ class BoutiqueService {
     return res.data;
   }
 
+  /** Libellé lisible d'un lien Google Maps (même endpoint que le web). */
+  async resolveLocation(url: string): Promise<{ label: string | null }> {
+    const res = await api.post('/resolve-location', { url });
+    return res.data;
+  }
+
+  async report(id: number, motif = '') {
+    const res = await api.post(`/${id}/signaler`, { motif });
+    return res.data;
+  }
+
   async update(id: number, data: FormData): Promise<Boutique> {
     const res = await api.put(`/${id}`, data, {
       headers: { "Content-Type": "multipart/form-data" },

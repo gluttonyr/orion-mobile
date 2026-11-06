@@ -1,4 +1,5 @@
 import { colors } from './theme';
+import type { Mission } from '@/model/model';
 
 export type DashboardScreen =
   | 'home'
@@ -60,6 +61,8 @@ export type Opportunity = {
   status: 'Ouverte' | 'Fermée' | 'Brouillon';
   posted: string;
   description?: string;
+  /** Mission d'origine (montant, fréquence, durée, prérequis) pour l'édition. */
+  raw?: Mission;
 };
 
 export type Transaction = {

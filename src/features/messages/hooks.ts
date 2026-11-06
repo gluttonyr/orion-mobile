@@ -39,28 +39,28 @@ export function useConversations() {
         if (cancelled) return;
 
         const convList = discussions.map((d: Discussion) => {
-          const other = d.participants?.find((p) => p.utilisateurId !== user?.id) ?? d.participants?.[0];
+          const other = d.contactUser
+            ?? d.participants?.find((p) => p.utilisateurId !== user?.id)?.utilisateur
+            ?? null;
           const discussionMessages = msgs.filter((m: Message) => m.discussionId === d.id)
             .sort((a, b) => new Date(a.createdAt ?? a.date_envoi ?? 0).getTime() - new Date(b.createdAt ?? b.date_envoi ?? 0).getTime());
           const last = discussionMessages[discussionMessages.length - 1];
+          const otherName = other ? `${other.prenom ?? ""} ${other.nom ?? ""}`.trim() : "";
+          const lastDate = last?.createdAt ?? last?.date_envoi ?? d.lastMessageDate;
           return {
             id: String(d.id),
-            userName: d.titre || (other?.utilisateur
-              ? `${other.utilisateur.prenom ?? ""} ${other.utilisateur.nom ?? ""}`.trim() || `Conversation ${d.id}`
-              : `Discussion ${d.id}`),
-            avatar: other?.utilisateur?.prenom?.charAt(0)?.toUpperCase() || "C",
+            userName: d.titre || otherName || `Discussion ${d.id}`,
+            avatar: otherName.charAt(0).toUpperCase() || "C",
             unread: 0,
-            lastMessage: last?.contenu ?? "Aucun message",
-            timestamp: (last?.createdAt ?? last?.date_envoi)
-              ? new Date(last?.createdAt ?? last?.date_envoi ?? 0).toLocaleDateString("fr-FR")
-              : "",
+            lastMessage: last ? (last.deleted ? "Message supprimé" : last.contenu ?? "") : d.lastMessage ?? "Aucun message",
+            timestamp: lastDate ? new Date(lastDate).toLocaleDateString("fr-FR") : "",
           };
         });
 
         const msgList = msgs.map((m: Message) => ({
           id: String(m.id),
           conversationId: String(m.discussionId),
-          text: m.contenu ?? "",
+          text: m.deleted ? "Message supprimé" : m.contenu ?? "",
           timestamp: (m.createdAt ?? m.date_envoi)
             ? new Date(m.createdAt ?? m.date_envoi ?? 0).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
             : "",

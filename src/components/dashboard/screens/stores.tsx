@@ -156,8 +156,19 @@ function StoreFormModal({
       const permission = await Location.requestForegroundPermissionsAsync();
       if (!permission.granted) { Alert.alert('Autorisation requise', 'Autorisez l’accès à votre position pour la renseigner.'); return; }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setLocation(`https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`);
+      const link = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+      setLocation(link);
+      await fillAddressFrom(link);
     } catch { Alert.alert('Position indisponible', 'Collez un lien Google Maps ou réessayez.'); }
+  };
+
+  // Pré-remplit l'adresse à partir du lien Maps quand elle est encore vide.
+  const fillAddressFrom = async (link: string) => {
+    if (!/^https?:\/\//i.test(link.trim()) || address.trim()) return;
+    try {
+      const { label } = await boutiqueService.resolveLocation(link.trim());
+      if (label) setAddress((current) => current.trim() ? current : label);
+    } catch { /* l'adresse reste saisissable à la main */ }
   };
 
   const handleSave = () => {
@@ -191,7 +202,7 @@ function StoreFormModal({
             <FormField label="Description" value={description} onChangeText={setDescription} placeholder="Décrivez votre boutique" multiline />
             <FormSelect label="Catégorie" value={category} options={categories} onSelect={setCategory} />
             <FormField label="Adresse *" value={address} onChangeText={setAddress} placeholder="Rue, quartier, ville" />
-            <FormField label="Localisation (facultative)" value={location} onChangeText={setLocation} placeholder="Collez un lien Google Maps" helper="Vous pouvez aussi utiliser votre position actuelle." />
+            <FormField label="Localisation (facultative)" value={location} onChangeText={setLocation} onBlur={() => void fillAddressFrom(location)} placeholder="Collez un lien Google Maps" helper="Vous pouvez aussi utiliser votre position actuelle." />
             <Pressable style={styles.locationButton} onPress={capturePosition}><MapPin size={15} color={colors.burgundy} /><Text style={styles.locationButtonText}>Utiliser ma position actuelle</Text></Pressable>
             <FormField label="URL du logo" value={logo} onChangeText={setLogo} placeholder="https://..." helper="Lien vers une image carrée" />
             <Pressable style={styles.saveBtn} onPress={handleSave} disabled={saving}>

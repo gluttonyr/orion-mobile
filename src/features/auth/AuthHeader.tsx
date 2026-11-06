@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ShoppingBag } from 'lucide-react-native';
+import { OrionLogo } from '@/components/OrionLogo';
 import { StyleSheet, Text, View } from 'react-native';
 
 type AuthHeaderProps = {
@@ -19,7 +19,7 @@ export function AuthHeader({ eyebrow, title, subtitle }: AuthHeaderProps) {
         {[0, 1, 2, 3, 4].map((item) => <Diamond key={item} size={item % 2 === 0 ? 15 : 9} color={item % 2 === 0 ? '#E8C789' : '#F3DFB4'} />)}
       </View>
       <View style={styles.brandRow}>
-        <View style={styles.brandMark}><ShoppingBag size={17} color="#74122E" strokeWidth={2.4} /></View>
+        <OrionLogo size={38} />
         <View>
           <Text style={styles.brand}>ORION</Text>
           <Text style={styles.brandCaption}>LE MARCHÉ LOCAL, EN UN CLIC</Text>

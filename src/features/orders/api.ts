@@ -21,6 +21,7 @@ export const venteService = new VenteService();
 export const ordersApi = {
   getAll: venteService.getAll.bind(venteService),
   getById: venteService.getById.bind(venteService),
+  getSellerAnalytics: async (from: string, to: string): Promise<SellerAnalytics> => (await api.get('/seller/analytics', { params: { from, to } })).data,
   getSellerWallet: async () => (await api.get('/seller/wallet')).data,
   getSellerRemises: async () => (await api.get('/seller/remises')).data,
   generateHandoverQr: async (remiseId: number) => (await api.post(`/seller/remises/${remiseId}/qr`)).data,
@@ -34,4 +35,13 @@ export const notificationsService = {
   getAll: async (): Promise<NotificationList> => (await notificationsApi.get('/')).data,
   markRead: async (id: number): Promise<NotificationList> => (await notificationsApi.patch(`/${id}/read`)).data,
   markAllRead: async (): Promise<NotificationList> => (await notificationsApi.post('/read-all')).data,
+};
+
+export type SellerAnalytics = {
+  from: string;
+  to: string;
+  summary: { revenue: number; orderCount: number; unitsSold: number; averageOrderValue: number };
+  series: Array<{ date: string; revenue: number; orders: number; units: number }>;
+  topProducts: Array<{ produitId: number; name: string; quantity: number; revenue: number; orders: number }>;
+  recentOrders: Array<{ venteId: number; reference: string; date: string; montant: number; statut: string; articles: Array<{ produitId: number; nom: string; quantite: number; prixUnitaire: number }> }>;
 };

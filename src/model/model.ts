@@ -18,7 +18,9 @@ export enum TypePaiement {
   FIXE = 'fixe',
   HORAIRE = 'horaire',
   JOURNALIER = 'journalier',
+  HEBDOMADAIRE = 'hebdomadaire',
   MENSUEL = 'mensuel',
+  ANNUEL = 'annuel',
   PROJET = 'projet',
 }
 
@@ -111,6 +113,10 @@ export interface produits {
   categorie?: Categorie;
   proprietaireId?: number | null;
   categorieId?: number;
+  boutiqueId?: number | null;
+  boutiqueNom?: string | null;
+  pays?: string | null;
+  localisation?: string | null;
 }
 
 // Alias for compatibility
@@ -149,6 +155,8 @@ export interface Discussion {
   lastMessageDate?: Date;
   messages?: Message[];
   participants?: Discussion_Participant[];
+  /** Interlocuteur renvoyé par GET /api/discussion. */
+  contactUser?: { id: number; nom?: string | null; prenom?: string | null; image?: string | null } | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

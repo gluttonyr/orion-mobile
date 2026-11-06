@@ -38,6 +38,14 @@ class MissionService {
     return res.data;
   }
 
+  async getCandidates(id: number): Promise<MissionCandidate[]> {
+    const res = await api.get(`/${id}/candidatures`);
+    return res.data;
+  }
+  async updateCandidateStatus(id: number, userId: number, statut: 'acceptee' | 'refusee'): Promise<MissionCandidate> {
+    const res = await api.put(`/${id}/candidatures/${userId}`, { statut });
+    return res.data;
+  }
   async getById(id: number): Promise<Mission> {
     const res = await api.get(`/${id}`);
     return res.data;
@@ -55,3 +63,12 @@ class MissionService {
 }
 
 export const mission = new MissionService();
+
+export type MissionCandidate = {
+  userId: number;
+  statut: string;
+  dateCandidature: string;
+  message: string;
+  discussionId?: number;
+  candidat?: { id: number; nom?: string; prenom?: string; email?: string; specialite?: string; image?: string };
+};
