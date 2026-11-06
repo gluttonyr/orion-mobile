@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   list: { gap: 10, marginTop: 8 },
   row: { borderWidth: 1, borderColor: colors.line, borderRadius: radius.md, padding: 12, gap: 6 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#243D4E', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7F1033', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: 'white', fontWeight: '700' },
   flex: { flex: 1 },
   name: { color: colors.ink, fontSize: 13, fontWeight: '700' },

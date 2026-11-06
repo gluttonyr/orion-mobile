@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   detailPosted: { color: colors.muted, fontSize: 11, marginTop: 8 },
   candidateList: { gap: 2 },
   candidateRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.line },
-  candidateAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#243D4E', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  candidateAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#7F1033', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   candidateInitial: { color: 'white', fontWeight: '700', fontSize: 13 },
   flex: { flex: 1 },
   candidateName: { color: colors.ink, fontSize: 13, fontWeight: '700' },

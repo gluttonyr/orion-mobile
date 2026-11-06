@@ -25,7 +25,7 @@ export function LiveAvatar({ size = 36, onOfflinePress }: { size?: number; onOff
 
 const styles = StyleSheet.create({
   wrap: { position: 'relative', margin: 3 },
-  fallback: { backgroundColor: '#243D4E', alignItems: 'center', justifyContent: 'center' },
+  fallback: { backgroundColor: '#7F1033', alignItems: 'center', justifyContent: 'center' },
   liveRing: { borderWidth: 2, borderColor: '#E14D67' },
   liveBadge: { position: 'absolute', bottom: -4, alignSelf: 'center', backgroundColor: '#D93458', borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1, borderWidth: 1, borderColor: '#fff' },
   liveText: { color: '#fff', fontSize: 7, fontWeight: '900', letterSpacing: 0.3 },

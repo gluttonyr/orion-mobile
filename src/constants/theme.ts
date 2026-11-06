@@ -14,53 +14,54 @@ import { Platform } from 'react-native';
 // Color
 // ---------------------------------------------------------------------------
 
-/** Deep blue — brand identity, kept from the original palette. */
+/** Bordeaux Orion — couleur de marque (même valeur que le site web : #7F1033 / #841438). */
 const primary = {
-  50: '#EEF2FB',
-  100: '#DCE4F6',
-  200: '#B3C3EA',
-  300: '#8AA2DE',
-  400: '#4A6BC8',
-  500: '#1E3A8A',
-  600: '#1B3378',
-  700: '#162A63',
-  800: '#11214E',
-  900: '#0C1838',
+  50: '#FBF0F3',
+  100: '#F6DEE4',
+  200: '#EBB9C6',
+  300: '#D98AA0',
+  400: '#B4466A',
+  500: '#841438',
+  600: '#7F1033',
+  700: '#68102D',
+  800: '#520C23',
+  900: '#3A0818',
 } as const;
 
-/** Emerald green — brand identity, kept from the original palette. */
+/** Beige / sable doré — accent chaleureux de la marque (badges, mises en avant). */
 const secondary = {
-  50: '#E9FBF4',
-  100: '#CFF7E6',
-  200: '#9FEFCE',
-  300: '#66E0B3',
-  400: '#2ECB95',
-  500: '#10B981',
-  600: '#0D9C6E',
-  700: '#0A7D59',
-  800: '#075E43',
-  900: '#04402E',
+  50: '#FBF6EE',
+  100: '#F5EBD9',
+  200: '#EBD6B1',
+  300: '#E1C089',
+  400: '#D2A766',
+  500: '#B8893F',
+  600: '#96702F',
+  700: '#765724',
+  800: '#57401A',
+  900: '#3A2A11',
 } as const;
 
+/** Gris chauds (teinte beige) au lieu des gris bleutés. */
 const neutral = {
   0: '#FFFFFF',
-  50: '#F8FAFC',
-  100: '#F1F5F9',
-  200: '#E7EBF0',
-  300: '#D6DCE5',
-  400: '#AEB7C4',
-  500: '#828C9B',
-  600: '#5B6472',
-  700: '#3D4451',
-  800: '#242A34',
-  900: '#12151A',
+  50: '#F7F5F1',
+  100: '#F1EDE7',
+  200: '#E8E1D9',
+  300: '#D9D0C6',
+  400: '#B5AAA0',
+  500: '#8F857E',
+  600: '#6B615C',
+  700: '#4B4140',
+  800: '#302528',
+  900: '#1E1719',
 } as const;
 
 const semantic = {
-  success: { base: '#10B981', bg: '#E9FBF4', text: '#0A7D59' },
-  warning: { base: '#F59E0B', bg: '#FEF6E7', text: '#B45309' },
-  danger: { base: '#EF4444', bg: '#FDECEC', text: '#B91C1C' },
-  info: { base: '#3B82F6', bg: '#EAF2FE', text: '#1D4ED8' },
+  success: { base: '#2F7D4A', bg: '#E8F3EC', text: '#22603A' },
+  warning: { base: '#C88728', bg: '#FBF1DE', text: '#96732E' },
+  danger: { base: '#C2343F', bg: '#FBE9EA', text: '#A23B42' },
+  info: { base: '#8A6D5B', bg: '#F4EDE7', text: '#6B5244' },
 } as const;
 
 export const Palette = {
@@ -74,7 +75,7 @@ export const Palette = {
   text: neutral[900],
   textSecondary: neutral[600],
   textMuted: neutral[500],
-  overlay: 'rgba(12, 24, 56, 0.55)',
+  overlay: 'rgba(40, 16, 24, 0.55)',
 } as const;
 
 /** @deprecated kept only so `use-theme.ts` keeps compiling; use `Palette` directly. */
@@ -177,21 +178,21 @@ export const Radius = {
 
 export const Shadows = {
   sm: {
-    shadowColor: '#0C1838',
+    shadowColor: '#3A0818',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   md: {
-    shadowColor: '#0C1838',
+    shadowColor: '#3A0818',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 5,
   },
   lg: {
-    shadowColor: '#0C1838',
+    shadowColor: '#3A0818',
     shadowOffset: { width: 0, height: 14 },
     shadowOpacity: 0.12,
     shadowRadius: 28,
