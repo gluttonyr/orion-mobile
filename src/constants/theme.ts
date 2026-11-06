@@ -9,13 +9,14 @@
 import '@/global.css';
 
 import { Platform } from 'react-native';
+import { pick } from './scheme';
 
 // ---------------------------------------------------------------------------
 // Color
 // ---------------------------------------------------------------------------
 
 /** Bordeaux Orion — couleur de marque (même valeur que le site web : #7F1033 / #841438). */
-const primary = {
+const primaryLight = {
   50: '#FBF0F3',
   100: '#F6DEE4',
   200: '#EBB9C6',
@@ -29,7 +30,7 @@ const primary = {
 } as const;
 
 /** Beige / sable doré — accent chaleureux de la marque (badges, mises en avant). */
-const secondary = {
+const secondaryLight = {
   50: '#FBF6EE',
   100: '#F5EBD9',
   200: '#EBD6B1',
@@ -43,7 +44,7 @@ const secondary = {
 } as const;
 
 /** Gris chauds (teinte beige) au lieu des gris bleutés. */
-const neutral = {
+const neutralLight = {
   0: '#FFFFFF',
   50: '#F7F5F1',
   100: '#F1EDE7',
@@ -57,12 +58,39 @@ const neutral = {
   900: '#1E1719',
 } as const;
 
-const semantic = {
+const semanticLight = {
   success: { base: '#2F7D4A', bg: '#E8F3EC', text: '#22603A' },
   warning: { base: '#C88728', bg: '#FBF1DE', text: '#96732E' },
   danger: { base: '#C2343F', bg: '#FBE9EA', text: '#A23B42' },
   info: { base: '#8A6D5B', bg: '#F4EDE7', text: '#6B5244' },
 } as const;
+
+// --- Variantes sombres -------------------------------------------------------
+// Bordeaux éclairci pour rester lisible sur fond sombre (texte et boutons avec texte blanc).
+const primaryDark = {
+  50: '#2C1219', 100: '#3A1622', 200: '#5A2236', 300: '#8A3352', 400: '#B23A60',
+  500: '#D1416B', 600: '#E0587F', 700: '#EB7E9C', 800: '#F3AFC2', 900: '#FADDE6',
+} as const;
+const secondaryDark = {
+  50: '#2A2316', 100: '#3A301C', 200: '#5A4A28', 300: '#7E6835', 400: '#A88A4A',
+  500: '#D9AE63', 600: '#E3C07F', 700: '#EDD2A0', 800: '#F5E4C3', 900: '#FBF3E3',
+} as const;
+// Échelle de gris inversée : 0 = surface, 50 = fond de page, 900 = texte principal.
+const neutralDark = {
+  0: '#1E1B1F', 50: '#141215', 100: '#262126', 200: '#352E32', 300: '#4A4146',
+  400: '#6E6469', 500: '#9C918B', 600: '#C9BFB8', 700: '#DDD5CF', 800: '#ECE6E1', 900: '#F7F2EE',
+} as const;
+const semanticDark = {
+  success: { base: '#4FBF8A', bg: '#16291F', text: '#7FD8AC' },
+  warning: { base: '#E0A84B', bg: '#2E2414', text: '#F0C47A' },
+  danger: { base: '#EF5D68', bg: '#341A1D', text: '#F7929A' },
+  info: { base: '#C2A38F', bg: '#2A221E', text: '#DCC3B2' },
+} as const;
+
+const primary = pick<Record<keyof typeof primaryLight, string>>(primaryLight, primaryDark);
+const secondary = pick<Record<keyof typeof secondaryLight, string>>(secondaryLight, secondaryDark);
+const neutral = pick<Record<keyof typeof neutralLight, string>>(neutralLight, neutralDark);
+const semantic = pick<{ [K in keyof typeof semanticLight]: { base: string; bg: string; text: string } }>(semanticLight, semanticDark);
 
 export const Palette = {
   primary,
@@ -75,7 +103,14 @@ export const Palette = {
   text: neutral[900],
   textSecondary: neutral[600],
   textMuted: neutral[500],
-  overlay: 'rgba(40, 16, 24, 0.55)',
+  /** Bandeaux de marque : couleurs fixes, identiques en clair et en sombre. */
+  brandGradient: ['#841438', '#B8893F'] as [string, string],
+  brandGradientDeep: ['#7F1033', '#B4466A'] as [string, string],
+  /** Texte secondaire posé sur un bandeau de marque. */
+  onPrimaryMuted: 'rgba(255, 245, 232, 0.82)',
+  /** Texte et icônes posés sur un fond de marque (boutons bordeaux) : toujours blanc. */
+  onPrimary: '#FFFFFF',
+  overlay: pick('rgba(40, 16, 24, 0.55)', 'rgba(0, 0, 0, 0.6)'),
 } as const;
 
 /** @deprecated kept only so `use-theme.ts` keeps compiling; use `Palette` directly. */

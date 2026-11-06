@@ -74,7 +74,7 @@ export default function SellerProfileScreen() {
       />
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: BottomTabInset }}>
 
-        <LinearGradient colors={[Palette.primary[500], Palette.secondary[500]]} style={styles.profileHero}>
+        <LinearGradient colors={Palette.brandGradient} style={styles.profileHero}>
           <View style={styles.avatarContainer}>
             {profileImage ? (
               <Image source={{ uri: profileImage }} style={styles.avatar} />
@@ -112,8 +112,8 @@ export default function SellerProfileScreen() {
         {subscription && (
           <Card style={styles.card}>
             <View style={styles.cardHeader}>
-              <LinearGradient colors={[Palette.primary[500], Palette.secondary[500]]} style={styles.crownBox}>
-                <Ionicons name="diamond" size={20} color={Palette.surface} />
+              <LinearGradient colors={Palette.brandGradient} style={styles.crownBox}>
+                <Ionicons name="diamond" size={20} color={Palette.onPrimary} />
               </LinearGradient>
               <View style={styles.cardHeaderText}>
                 <Text style={styles.cardTitle}>Mon Abonnement</Text>
@@ -253,11 +253,11 @@ const styles = StyleSheet.create({
   avatarPlaceholder: { width: 80, height: 80, borderRadius: Radius.pill, backgroundColor: Palette.surface, borderWidth: 3, borderColor: Palette.surface, alignItems: "center", justifyContent: "center" },
   cameraBtn: { position: "absolute", bottom: -4, right: -4, width: 28, height: 28, borderRadius: Radius.pill, backgroundColor: Palette.surface, alignItems: "center", justifyContent: "center", ...Shadows.sm },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 20, fontWeight: "800", color: Palette.surface, marginBottom: 2 },
-  profileRole: { fontSize: 13, color: Palette.primary[100], marginBottom: Spacing.three },
+  profileName: { fontSize: 20, fontWeight: "800", color: Palette.onPrimary, marginBottom: 2 },
+  profileRole: { fontSize: 13, color: Palette.onPrimaryMuted, marginBottom: Spacing.three },
   badgesRow: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   badge: { backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: Spacing.two, paddingVertical: 4, borderRadius: Radius.pill },
-  badgeText: { color: Palette.surface, fontSize: 11, fontWeight: "600" },
+  badgeText: { color: Palette.onPrimary, fontSize: 11, fontWeight: "600" },
   editingBanner: { flexDirection: "row", alignItems: "flex-start", gap: Spacing.two, marginHorizontal: Spacing.four, marginBottom: Spacing.four, backgroundColor: Palette.info.bg, borderRadius: Radius.md, padding: Spacing.three },
   editingBannerText: { flex: 1, fontSize: 13, color: Palette.info.text, lineHeight: 19 },
   card: { marginHorizontal: Spacing.four, marginBottom: Spacing.four },

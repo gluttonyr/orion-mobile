@@ -53,7 +53,7 @@ export function ProductCard({
             <View style={styles.priceRow}><PriceTag amount={price} size="sm" />{originalPrice != null && originalPrice > price ? <PriceTag amount={originalPrice} size="sm" color={Palette.textMuted} style={styles.originalPrice} /> : null}</View>
             {onAddToCart && (
               <AnimatedPressable onPress={onAddToCart} scaleTo={0.9} style={styles.addBtn}>
-                <Ionicons name={addToCartDone ? 'checkmark' : 'add'} size={18} color={Palette.surface} />
+                <Ionicons name={addToCartDone ? 'checkmark' : 'add'} size={18} color={Palette.onPrimary} />
               </AnimatedPressable>
             )}
           </View>

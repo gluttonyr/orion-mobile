@@ -11,8 +11,9 @@ import { produitService } from '@/service/produit.service';
 import { boutiqueService } from '@/service/boutique.service';
 import { UserRole, type Boutique, type produits } from '@/model/model';
 import { getSellingProductPrice } from '@/features/products/pricing';
+import { pick, ui } from '@/constants/scheme';
 
-const colors = { ink: '#171717', muted: '#737373', line: '#E9E9EC', burgundy: '#8B0A24', soft: '#F9E9ED', navy: '#07121E', white: '#FFFFFF', green: '#147A57' };
+const colors = { ink: ui.ink, muted: ui.muted, line: ui.line, burgundy: pick('#8B0A24', '#D1416B'), soft: ui.brandSoft, navy: '#07121E', white: '#FFFFFF', green: pick('#147A57', '#4FBF8A'), surface: ui.surface };
 const webUrl = (process.env.EXPO_PUBLIC_WEB_URL ?? '').replace(/\/$/, '');
 
 export function LiveCenterScreen({ onCreateClip, onOpenProfile }: { onCreateClip: () => void; onOpenProfile: () => void }) {
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
   copyButton: { borderRadius: 9, backgroundColor: colors.soft, paddingHorizontal: 9, paddingVertical: 9 },
   copyText: { color: colors.burgundy, fontSize: 10, fontWeight: '800' },
   disabled: { opacity: 0.45 },
-  shortHint: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, backgroundColor: '#F7F8FA', padding: 13, marginTop: 25, marginBottom: 10 },
+  shortHint: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, backgroundColor: ui.soft, padding: 13, marginTop: 25, marginBottom: 10 },
   shortHintTitle: { color: colors.ink, fontSize: 12, fontWeight: '800' },
   selectionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10, marginBottom: 6 },
   selectionChip: { borderRadius: 10, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 11, paddingVertical: 8 },
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   productPickerName: { color: colors.ink, fontSize: 12, flex: 1 },
   optional: { color: colors.muted, fontSize: 11, fontWeight: '500' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(7,18,30,0.48)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 },
+  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.line, alignSelf: 'center', marginBottom: 18 },
   sheetHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 18 },
   sheetTitle: { color: colors.ink, fontSize: 18, fontWeight: '800' },

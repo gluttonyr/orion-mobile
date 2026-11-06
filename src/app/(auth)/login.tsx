@@ -5,8 +5,9 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react-native'
 import { useAuth } from '@/features/auth/hooks';
 import { AuthHeader } from '@/features/auth/AuthHeader';
 import { useToast } from '@/store/toast-store';
+import { ui } from '@/constants/scheme';
 
-const colors = { burgundy: '#74122E', burgundyDark: '#5C0D26', ink: '#241C1C', muted: '#766D67', line: '#E8DED2', white: '#FFFCF7', canvas: '#F5EFE7' };
+const colors = { burgundy: ui.brand, burgundyDark: ui.brandDark, ink: ui.ink, muted: ui.muted, line: ui.line, white: '#FFFCF7', card: ui.surfaceWarm, field: ui.field, canvas: ui.canvas };
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -84,11 +85,11 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.canvas },
   container: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24, justifyContent: 'center' },
-  formCard: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: 22, padding: 20, marginTop: -18, elevation: 5, shadowColor: '#421D24', shadowOpacity: 0.12, shadowRadius: 15, shadowOffset: { width: 0, height: 7 } },
+  formCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 22, padding: 20, marginTop: -18, elevation: 5, shadowColor: '#421D24', shadowOpacity: 0.12, shadowRadius: 15, shadowOffset: { width: 0, height: 7 } },
   formTitle: { color: colors.ink, fontSize: 20, fontWeight: '800' },
   formSubtitle: { color: colors.muted, fontSize: 12, marginTop: 5, marginBottom: 20 },
   label: { color: colors.ink, fontSize: 12, fontWeight: '700', marginBottom: 7, marginTop: 12 },
-  inputWrap: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: '#FFFEFC', paddingHorizontal: 13 },
+  inputWrap: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: ui.field, paddingHorizontal: 13 },
   input: { flex: 1, color: colors.ink, fontSize: 14, paddingVertical: 12 },
   forgotLink: { alignSelf: 'flex-end', marginTop: 10 },
   forgotText: { color: colors.burgundy, fontSize: 12, fontWeight: '800' },

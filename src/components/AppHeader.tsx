@@ -115,7 +115,7 @@ export function AppHeader(props: AppHeaderProps) {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
-            <Ionicons name="log-in-outline" size={15} color={Palette.surface} />
+            <Ionicons name="log-in-outline" size={15} color={Palette.onPrimary} />
             <Text style={styles.loginText}>Connexion</Text>
           </TouchableOpacity>
         )}
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
   },
   loginText: {
-    color: Palette.surface,
+    color: Palette.onPrimary,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   cartBadgeText: {
     fontSize: 9,
     fontWeight: '800',
-    color: Palette.surface,
+    color: Palette.onPrimary,
   },
   title: {
     fontSize: Typography.h3.fontSize,

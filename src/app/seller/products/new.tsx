@@ -155,7 +155,7 @@ export default function ProductFormScreen() {
             <View style={styles.imageContainer}>
               <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
               <TouchableOpacity style={styles.removeImageBtn} onPress={() => setImageUri(null)}>
-                <Ionicons name="close" size={16} color={Palette.surface} />
+                <Ionicons name="close" size={16} color={Palette.onPrimary} />
               </TouchableOpacity>
             </View>
           ) : (

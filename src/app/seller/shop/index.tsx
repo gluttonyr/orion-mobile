@@ -54,8 +54,8 @@ export default function ShopScreen() {
 
         {/* Active Store Banner */}
         {activeStore && (
-          <LinearGradient colors={[Palette.primary[500], Palette.secondary[500]]} style={styles.activeBanner}>
-            <Ionicons name="storefront" size={22} color={Palette.surface} />
+          <LinearGradient colors={Palette.brandGradient} style={styles.activeBanner}>
+            <Ionicons name="storefront" size={22} color={Palette.onPrimary} />
             <View style={styles.activeBannerText}>
               <Text style={styles.activeBannerLabel}>Boutique active</Text>
               <Text style={styles.activeBannerName}>{activeStore.nom}</Text>
@@ -94,7 +94,7 @@ export default function ShopScreen() {
                           resizeMode="cover"
                         />
                       ) : (
-                        <Ionicons name="storefront" size={28} color={Palette.surface} />
+                        <Ionicons name="storefront" size={28} color={Palette.onPrimary} />
                       )}
                     </TouchableOpacity>
 
@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Palette.background },
   activeBanner: { flexDirection: "row", alignItems: "center", gap: Spacing.three, marginHorizontal: Spacing.four, marginTop: Spacing.three, marginBottom: Spacing.four, padding: Spacing.four, borderRadius: Radius.lg, ...Shadows.md },
   activeBannerText: { flex: 1 },
-  activeBannerLabel: { fontSize: 12, color: Palette.primary[100] },
-  activeBannerName: { fontSize: 16, fontWeight: "700", color: Palette.surface },
+  activeBannerLabel: { fontSize: 12, color: Palette.onPrimaryMuted },
+  activeBannerName: { fontSize: 16, fontWeight: "700", color: Palette.onPrimary },
   list: { paddingHorizontal: Spacing.four, gap: Spacing.four },
   storeCard: { backgroundColor: Palette.surface, borderRadius: Radius.lg, overflow: "hidden", ...Shadows.sm },
   storeCardActive: { borderWidth: 1.5, borderColor: Palette.primary[400] },

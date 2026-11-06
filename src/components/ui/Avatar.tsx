@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     borderColor: Palette.secondary[500],
   },
   initials: {
-    color: Palette.surface,
+    color: Palette.onPrimary,
     fontWeight: '700',
   },
 });

@@ -49,7 +49,7 @@ export function MessageThread({ conversation, messages, onBack, onSend, bottomIn
               <Text style={[styles.msgText, msg.isOwn && styles.msgTextOwn]}>{msg.text}</Text>
               <View style={styles.msgFooter}>
                 <Text style={[styles.msgTime, msg.isOwn && styles.msgTimeOwn]}>{msg.timestamp}</Text>
-                {msg.isOwn && <Ionicons name="checkmark-done" size={12} color={Palette.primary[100]} />}
+                {msg.isOwn && <Ionicons name="checkmark-done" size={12} color={Palette.onPrimaryMuted} />}
               </View>
             </View>
           </View>
@@ -75,7 +75,7 @@ export function MessageThread({ conversation, messages, onBack, onSend, bottomIn
           onPress={() => { void handleSend(); }}
           disabled={!messageText.trim()}
         >
-          <Ionicons name="send" size={18} color={Palette.surface} />
+          <Ionicons name="send" size={18} color={Palette.onPrimary} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -96,10 +96,10 @@ const styles = StyleSheet.create({
   msgBubbleOwn: { backgroundColor: Palette.primary[500], borderBottomRightRadius: Radius.sm },
   msgBubbleOther: { backgroundColor: Palette.surface, borderBottomLeftRadius: Radius.sm, ...Shadows.sm },
   msgText: { fontSize: 14, color: Palette.text, lineHeight: 20 },
-  msgTextOwn: { color: Palette.surface },
+  msgTextOwn: { color: Palette.onPrimary },
   msgFooter: { flexDirection: "row", alignItems: "center", gap: 4, justifyContent: "flex-end", marginTop: 4 },
   msgTime: { fontSize: 10, color: Palette.textMuted },
-  msgTimeOwn: { color: Palette.primary[100] },
+  msgTimeOwn: { color: Palette.onPrimaryMuted },
   emptyChat: { alignItems: "center", paddingTop: Spacing.eight },
   emptyChatText: { color: Palette.textSecondary, fontSize: 14 },
   inputRow: { flexDirection: "row", alignItems: "flex-end", gap: Spacing.three, padding: Spacing.three, backgroundColor: Palette.surface, borderTopWidth: 1, borderTopColor: Palette.border },

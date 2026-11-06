@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 14,
     color: colors.ink,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
   helper: { color: colors.muted, fontSize: 11, marginTop: 6 },

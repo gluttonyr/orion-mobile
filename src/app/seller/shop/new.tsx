@@ -145,7 +145,7 @@ export default function ShopFormScreen() {
               <View style={styles.logoContainer}>
                 <Image source={{ uri: logoUri }} style={styles.logoPreview} resizeMode="cover" />
                 <TouchableOpacity style={styles.removeLogoBtn} onPress={() => setLogoUri(null)}>
-                  <Ionicons name="close" size={14} color={Palette.surface} />
+                  <Ionicons name="close" size={14} color={Palette.onPrimary} />
                 </TouchableOpacity>
               </View>
             ) : (

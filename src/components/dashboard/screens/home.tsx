@@ -19,6 +19,7 @@ import { toDesignOpportunity, toDesignProduct } from '@/features/redesign/mapper
 import { useStore } from '@/features/seller/boutique-context';
 import { useState, useEffect } from 'react';
 import { useThemeMode } from '@/store/theme-mode';
+import { ui } from '@/constants/scheme';
 
 export function DashboardHome({ onNavigate }: { onNavigate: (s: DashboardScreen) => void }) {
   const { mode } = useThemeMode();
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: '47%',
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: radius.lg,

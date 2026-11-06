@@ -49,7 +49,7 @@ export default function OpportunitiesScreen() {
       <AppHeader variant="public" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: BottomTabInset }}>
         {/* Hero */}
-        <LinearGradient colors={[Palette.primary[600], Palette.secondary[500]]} style={styles.hero}>
+        <LinearGradient colors={Palette.brandGradient} style={styles.hero}>
           <Text style={styles.heroTitle}>Opportunités de Travail</Text>
           <Text style={styles.heroSubtitle}>
             Découvrez des missions, emplois et projets proposés par des commerçants africains
@@ -148,8 +148,8 @@ export default function OpportunitiesScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: Palette.background },
   hero: { padding: Spacing.seven, paddingBottom: Spacing.eight },
-  heroTitle: { fontSize: Typography.display.fontSize, fontWeight: "800", color: Palette.surface, marginBottom: Spacing.three },
-  heroSubtitle: { fontSize: 14, color: Palette.primary[100], lineHeight: 22 },
+  heroTitle: { fontSize: Typography.display.fontSize, fontWeight: "800", color: Palette.onPrimary, marginBottom: Spacing.three },
+  heroSubtitle: { fontSize: 14, color: Palette.onPrimaryMuted, lineHeight: 22 },
   statsRow: { flexDirection: "row", gap: Spacing.three, padding: Spacing.four, marginTop: -Spacing.six },
   statTile: { flex: 1 },
   searchBox: { marginHorizontal: Spacing.four, marginBottom: Spacing.three },

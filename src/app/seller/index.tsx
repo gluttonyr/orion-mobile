@@ -63,10 +63,10 @@ export default function DashboardScreen() {
       <AppHeader variant="authenticated" title="Tableau de bord" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: BottomTabInset }}>
         {/* Active Store Banner */}
-        <LinearGradient colors={[Palette.primary[600], Palette.primary[400]]} style={styles.storeBanner}>
+        <LinearGradient colors={Palette.brandGradientDeep} style={styles.storeBanner}>
           <View style={styles.storeInfo}>
             <View style={styles.storeIconBox}>
-              <Ionicons name="storefront" size={22} color={Palette.surface} />
+              <Ionicons name="storefront" size={22} color={Palette.onPrimary} />
             </View>
             <View>
               <Text style={styles.storeLabel}>Vous gérez actuellement</Text>
@@ -173,7 +173,7 @@ export default function DashboardScreen() {
         </Card>
 
         {/* Quick Actions */}
-        <LinearGradient colors={[Palette.primary[500], Palette.secondary[500]]} style={styles.ctaBanner}>
+        <LinearGradient colors={Palette.brandGradient} style={styles.ctaBanner}>
           <Text style={styles.ctaTitle}>Développez votre activité</Text>
           <Text style={styles.ctaSubtitle}>Explorez nos opportunités de financement et formations</Text>
           <Button
@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
   },
   storeInfo: { flexDirection: "row", alignItems: "center", gap: Spacing.three, flexShrink: 1 },
   storeIconBox: { width: 44, height: 44, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: Radius.md, alignItems: "center", justifyContent: "center" },
-  storeLabel: { fontSize: 11, color: Palette.primary[100], marginBottom: 2 },
-  storeName: { fontSize: 17, fontWeight: "700", color: Palette.surface },
-  storeLocation: { fontSize: 11, color: Palette.primary[100], marginTop: 2 },
+  storeLabel: { fontSize: 11, color: Palette.onPrimaryMuted, marginBottom: 2 },
+  storeName: { fontSize: 17, fontWeight: "700", color: Palette.onPrimary },
+  storeLocation: { fontSize: 11, color: Palette.onPrimaryMuted, marginTop: 2 },
   changeStoreBtn: { backgroundColor: Palette.surface, paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: Radius.pill },
   changeStoreText: { color: Palette.primary[500], fontSize: 13, fontWeight: "700" },
   quickCards: { padding: Spacing.four, gap: Spacing.three },
@@ -241,6 +241,6 @@ const styles = StyleSheet.create({
   missionDeadline: { fontSize: 12, color: Palette.textSecondary },
   missionReward: { fontSize: 13, fontWeight: "700", color: Palette.secondary[600] },
   ctaBanner: { margin: Spacing.four, padding: Spacing.six, borderRadius: Radius.lg, ...Shadows.md },
-  ctaTitle: { fontSize: 18, fontWeight: "700", color: Palette.surface, marginBottom: Spacing.two },
-  ctaSubtitle: { fontSize: 13, color: Palette.primary[100], marginBottom: Spacing.four },
+  ctaTitle: { fontSize: 18, fontWeight: "700", color: Palette.onPrimary, marginBottom: Spacing.two },
+  ctaSubtitle: { fontSize: 13, color: Palette.onPrimaryMuted, marginBottom: Spacing.four },
 });

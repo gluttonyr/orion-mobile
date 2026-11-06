@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   convRow: { flexDirection: "row", alignItems: "center", gap: Spacing.three, paddingHorizontal: Spacing.four, paddingVertical: Spacing.four, backgroundColor: Palette.surface, borderBottomWidth: 1, borderBottomColor: Palette.border },
   convAvatarWrap: { position: "relative" },
   unreadBadge: { position: "absolute", top: -4, right: -4, width: 20, height: 20, borderRadius: Radius.pill, backgroundColor: Palette.secondary[500], borderWidth: 2, borderColor: Palette.surface, alignItems: "center", justifyContent: "center" },
-  unreadText: { color: Palette.surface, fontSize: 10, fontWeight: "700" },
+  unreadText: { color: Palette.onPrimary, fontSize: 10, fontWeight: "700" },
   convInfo: { flex: 1 },
   convTopRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
   convName: { fontSize: 15, fontWeight: "700", color: Palette.text, flex: 1 },

@@ -1,13 +1,14 @@
 import { StyleSheet } from "react-native";
+import { ui } from '@/constants/scheme';
 
 // Palette de l'écran de connexion mobile.
-export const resetColors = { burgundy: "#74122E", burgundyDark: "#5C0D26", ink: "#241C1C", muted: "#766D67", line: "#E8DED2", white: "#FFFCF7", canvas: "#F5EFE7", success: "#2F7D4A", danger: "#A04B4F" };
+export const resetColors = { burgundy: ui.brand, burgundyDark: ui.brandDark, ink: ui.ink, muted: ui.muted, line: ui.line, white: "#FFFCF7", card: ui.surfaceWarm, field: ui.field, canvas: ui.canvas, success: "#2F7D4A", danger: "#A04B4F" };
 const c = resetColors;
 
 export const resetStyles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: c.canvas },
   container: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24, justifyContent: "center" },
-  formCard: { backgroundColor: c.white, borderWidth: 1, borderColor: c.line, borderRadius: 22, padding: 20, marginTop: -18, elevation: 5, shadowColor: "#421D24", shadowOpacity: 0.12, shadowRadius: 15, shadowOffset: { width: 0, height: 7 } },
+  formCard: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 22, padding: 20, marginTop: -18, elevation: 5, shadowColor: "#421D24", shadowOpacity: 0.12, shadowRadius: 15, shadowOffset: { width: 0, height: 7 } },
   progress: { flexDirection: "row", gap: 6, marginBottom: 18 },
   progressBar: { flex: 1, height: 4, borderRadius: 999, backgroundColor: c.line },
   progressBarActive: { backgroundColor: c.burgundy },
@@ -16,7 +17,7 @@ export const resetStyles = StyleSheet.create({
   formSubtitle: { color: c.muted, fontSize: 12, lineHeight: 18, marginTop: 5, marginBottom: 14 },
   strong: { color: c.burgundy, fontWeight: "800" },
   label: { color: c.ink, fontSize: 12, fontWeight: "700", marginBottom: 7, marginTop: 12 },
-  inputWrap: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: "#FFFEFC", paddingHorizontal: 13 },
+  inputWrap: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: ui.field, paddingHorizontal: 13 },
   input: { flex: 1, color: c.ink, fontSize: 14, paddingVertical: 12 },
   primaryButton: { minHeight: 52, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center", backgroundColor: c.burgundy, borderRadius: 13, marginTop: 22, elevation: 3 },
   disabledButton: { opacity: 0.55 },
@@ -27,7 +28,7 @@ export const resetStyles = StyleSheet.create({
   backLink: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 18 },
   backLinkText: { color: c.burgundy, fontSize: 13, fontWeight: "800" },
   codeRow: { flexDirection: "row", justifyContent: "space-between", gap: 6 },
-  codeBox: { flex: 1, height: 56, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: "#FFFEFC", alignItems: "center", justifyContent: "center" },
+  codeBox: { flex: 1, height: 56, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: ui.field, alignItems: "center", justifyContent: "center" },
   codeBoxActive: { borderColor: c.burgundy, borderWidth: 1.5 },
   codeBoxError: { borderColor: "#D48C8F", backgroundColor: "#FDF3F2" },
   codeDigit: { color: c.burgundy, fontSize: 24, fontWeight: "800" },

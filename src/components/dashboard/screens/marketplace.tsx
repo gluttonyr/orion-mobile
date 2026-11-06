@@ -9,6 +9,7 @@ import { getSellingProductPrice } from '@/features/products/pricing';
 import { toDesignProduct } from '@/features/redesign/mappers';
 import { useCart } from '@/store/cart-store';
 import { useToast } from '@/store/toast-store';
+import { ui } from '@/constants/scheme';
 
 /** Marketplace du tableau de bord : vrais produits publiés (auparavant des données d'exemple). */
 export function MarketplaceScreen() {
@@ -116,10 +117,10 @@ const styles = StyleSheet.create({
   empty: { paddingVertical: 40, alignItems: 'center' },
   emptyText: { color: colors.muted, fontSize: 14 },
   productGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  productCard: { width: '47%', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 10, overflow: 'hidden' },
+  productCard: { width: '47%', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 10, overflow: 'hidden' },
   productImageWrap: { position: 'relative' },
   productImage: { width: '100%', height: 140, borderRadius: radius.md, marginBottom: 8 },
-  favoriteBtn: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
+  favoriteBtn: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: ui.surface, alignItems: 'center', justifyContent: 'center' },
   productName: { color: colors.ink, fontSize: 13, fontWeight: '700' },
   productShop: { color: colors.muted, fontSize: 11, marginTop: 2 },
   productPrice: { color: colors.burgundy, fontSize: 14, fontWeight: '800', marginTop: 6 },

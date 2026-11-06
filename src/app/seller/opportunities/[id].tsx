@@ -22,13 +22,14 @@ function getTypeTone(type: string): ChipTone {
 }
 
 const GRADIENT_MAP: Record<ChipTone, [string, string]> = {
-  info: [Palette.info.base, Palette.primary[700]],
-  success: [Palette.secondary[500], Palette.secondary[700]],
-  primary: [Palette.primary[400], Palette.primary[700]],
-  warning: [Palette.warning.base, Palette.warning.text],
-  secondary: [Palette.secondary[400], Palette.secondary[700]],
-  danger: [Palette.danger.base, Palette.danger.text],
-  neutral: [Palette.neutral[500], Palette.neutral[700]],
+  // Couleurs fixes : le bandeau garde le même rendu en clair et en sombre (texte blanc).
+  info: ['#8A6D5B', '#5A2236'],
+  success: ['#B8893F', '#765724'],
+  primary: ['#B4466A', '#68102D'],
+  warning: ['#C88728', '#96732E'],
+  secondary: ['#D2A766', '#765724'],
+  danger: ['#C2343F', '#A23B42'],
+  neutral: ['#8F857E', '#4B4140'],
 };
 
 function candidatureTone(statut?: string): ChipTone {
@@ -152,10 +153,10 @@ const styles = StyleSheet.create({
   heroBadgeRow: { flexDirection: "row", gap: Spacing.two, marginBottom: Spacing.three },
   heroBadge: { backgroundColor: "rgba(255,255,255,0.25)" },
   heroBadgeAlt: { backgroundColor: "rgba(255,255,255,0.15)" },
-  heroTitle: { fontSize: 20, fontWeight: "700", color: Palette.surface, lineHeight: 28, marginBottom: Spacing.two },
+  heroTitle: { fontSize: 20, fontWeight: "700", color: Palette.onPrimary, lineHeight: 28, marginBottom: Spacing.two },
   heroMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: Spacing.two },
   heroMetaText: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
-  heroPrice: { fontSize: 22, fontWeight: "700", color: Palette.surface, marginTop: 4 },
+  heroPrice: { fontSize: 22, fontWeight: "700", color: Palette.onPrimary, marginTop: 4 },
   statsRow: { flexDirection: "row", gap: Spacing.three, margin: Spacing.four },
   statTile: { flex: 1 },
   section: { marginHorizontal: Spacing.four, marginBottom: Spacing.three },
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
   candList: { gap: Spacing.three },
   candItem: { flexDirection: "row", alignItems: "center", gap: Spacing.three, padding: Spacing.three, backgroundColor: Palette.neutral[50], borderRadius: Radius.md },
   candAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: Palette.primary[500], alignItems: "center", justifyContent: "center" },
-  candAvatarText: { color: Palette.surface, fontWeight: "700", fontSize: 15 },
+  candAvatarText: { color: Palette.onPrimary, fontWeight: "700", fontSize: 15 },
   candInfo: { flex: 1 },
   candName: { fontSize: 14, fontWeight: "600", color: Palette.text },
   candDate: { fontSize: 12, color: Palette.textSecondary, marginTop: 2 },

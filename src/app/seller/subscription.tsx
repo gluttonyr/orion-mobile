@@ -11,7 +11,7 @@ export default function SellerSubscriptionScreen() {
     <AppHeader variant="back" title="Abonnement" subtitle="Votre forfait Standard" />
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.card}>
-        <View style={styles.heading}><View style={styles.icon}><ShieldCheck size={23} color={Palette.surface} /></View><View style={styles.flex}><Text style={styles.kicker}>OFFRE DE LANCEMENT</Text><Text style={styles.title}>{subscription?.titre ?? "Standard"}</Text></View><Text style={styles.free}>GRATUIT</Text></View>
+        <View style={styles.heading}><View style={styles.icon}><ShieldCheck size={23} color={Palette.onPrimary} /></View><View style={styles.flex}><Text style={styles.kicker}>OFFRE DE LANCEMENT</Text><Text style={styles.title}>{subscription?.titre ?? "Standard"}</Text></View><Text style={styles.free}>GRATUIT</Text></View>
         <Text style={styles.copy}>Le forfait Standard est activé automatiquement et reste gratuit au lancement.</Text>
         <View style={styles.metric}><Text style={styles.label}>Boutique gérable</Text><Text style={styles.value}>{usage?.boutiques ?? 0}/1</Text></View>
         <View style={styles.metric}><Text style={styles.label}>Produits</Text><Text style={styles.value}>{usage?.produits ?? 0}/40</Text></View>
