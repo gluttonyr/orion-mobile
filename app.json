@@ -17,7 +17,11 @@
         "backgroundImage": "./assets/images/android-icon-background.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.koufessi_roland.orionmobile"
+      "package": "com.koufessi_roland.orionmobile",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -51,6 +55,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4fc1ded9-de98-4018-8701-f1f3ad01d0a6"
+      }
+    },
+    "owner": "koufessi_roland"
   }
 }
