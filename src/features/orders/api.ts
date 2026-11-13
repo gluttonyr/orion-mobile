@@ -51,8 +51,8 @@ const paiementApi = createApi("paiement");
 
 export type WithdrawalStatus = 'en_cours' | 'envoye' | 'echoue';
 export type Withdrawal = { id: number; reference: string; montant: number; mode: string; telephone: string; statut: WithdrawalStatus; erreur?: string | null; createdAt: string };
-export type WithdrawalOptions = { pays: string; indicatif: string; longueurNumero: number | null; minimum: number; maximum: number; modes: Array<{ mode: string; label: string }> };
-export type WithdrawalBalances = { libere: number; enCours: number; retire: number; disponible: number };
+export type WithdrawalOptions = { pays: string; indicatif: string; longueurNumero: number | null; minimum: number; maximum: number; delaiHeures: number; modes: Array<{ mode: string; label: string }> };
+export type WithdrawalBalances = { libere: number; enAttenteDelai: number; prochaineDisponibilite: string | null; enCours: number; retire: number; disponible: number };
 
 export const withdrawalsApi = {
   options: async (): Promise<WithdrawalOptions> => (await paiementApi.get('/retraits/options')).data,

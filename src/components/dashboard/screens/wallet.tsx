@@ -15,7 +15,7 @@ type SellerRemise = {
   articles: Array<{ nom: string; quantite: number }>;
 };
 
-type SellerWalletData = { disponible: number; bloque: number; rembourse: number; retire?: number; retraitEnCours?: number; messageVersement: string };
+type SellerWalletData = { disponible: number; bloque: number; rembourse: number; retire?: number; retraitEnCours?: number; enAttenteDelai?: number; messageVersement: string };
 
 export function WalletScreen({ onNavigate, ordersOnly = false }: { onNavigate?: (screen: 'withdrawal-methods') => void; ordersOnly?: boolean }) {
   const [wallet, setWallet] = useState<SellerWalletData | null>(null);
@@ -38,6 +38,7 @@ export function WalletScreen({ onNavigate, ordersOnly = false }: { onNavigate?: 
       <Text style={styles.walletLabel}>DISPONIBLE AU RETRAIT</Text>
       <Text style={styles.walletAmount}>{format(wallet?.disponible ?? 0)}</Text>
       <Text style={styles.walletSubtext}>En attente de remise : {format(wallet?.bloque ?? 0)}{wallet?.retire ? ` · déjà retiré : ${format(wallet.retire)}` : ''}</Text>
+      {wallet?.enAttenteDelai ? <Text style={styles.walletSubtext}>{format(wallet.enAttenteDelai)} libérés récemment : retirables 24 h après leur libération.</Text> : null}
       <Pressable style={styles.withdrawButton} onPress={() => onNavigate?.('withdrawal-methods')} accessibilityRole="button">
         <Text style={styles.withdrawButtonText}>Retirer mes gains</Text>
       </Pressable>

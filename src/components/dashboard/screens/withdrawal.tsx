@@ -1,4 +1,4 @@
-import { ArrowUpRight, CheckCircle2, Clock3, RefreshCw, Smartphone, XCircle } from 'lucide-react-native';
+import { ArrowUpRight, CheckCircle2, Clock3, Hourglass, RefreshCw, Smartphone, XCircle } from 'lucide-react-native';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { colors, radius, spacing } from '../theme';
@@ -16,12 +16,25 @@ const STATUS = {
   echoue: { label: 'Échoué', color: colors.error, bg: colors.burgundySoft, icon: XCircle },
 } as const;
 
+/** « demain à 14:05 », « aujourd’hui à 18:30 » ou « le 15/11 à 09:00 ». */
+function releaseLabel(iso: string | null) {
+  if (!iso) return 'dans 24 h';
+  const date = new Date(iso);
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date();
+  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+  if (date.toDateString() === today.toDateString()) return `aujourd’hui à ${time}`;
+  if (date.toDateString() === tomorrow.toDateString()) return `demain à ${time}`;
+  return `le ${date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} à ${time}`;
+}
+
 /** Retrait des gains libérés vers le Mobile Money du commerçant (payout FedaPay) — même logique que le web. */
 export function WithdrawalMethodsScreen() {
   const { showToast } = useToast();
   const [options, setOptions] = useState<WithdrawalOptions | null>(null);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [available, setAvailable] = useState(0);
+  const [waiting, setWaiting] = useState<{ amount: number; at: string | null }>({ amount: 0, at: null });
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [mode, setMode] = useState('');
@@ -37,6 +50,7 @@ export function WithdrawalMethodsScreen() {
       setMode((current) => current || opts.modes[0]?.mode || '');
       setWithdrawals(data.retraits);
       setAvailable(data.soldes.disponible);
+      setWaiting({ amount: data.soldes.enAttenteDelai ?? 0, at: data.soldes.prochaineDisponibilite ?? null });
       setError('');
     } catch (reason) {
       setError(errorMessage(reason, 'Impossible de charger vos retraits.'));
@@ -55,7 +69,7 @@ export function WithdrawalMethodsScreen() {
     if (!options) return 'Les retraits ne sont pas disponibles pour le moment.';
     if (pending) return 'Un retrait est déjà en cours. Attendez sa confirmation.';
     if (!Number.isInteger(value) || value < options.minimum) return `Le montant minimum est de ${money(options.minimum)}.`;
-    if (value > available) return `Vous pouvez retirer au maximum ${money(available)}.`;
+    if (value > available) return `Vous pouvez retirer au maximum ${money(available)} pour le moment.${waiting.amount ? ` ${money(waiting.amount)} seront retirables ${releaseLabel(waiting.at)}.` : ''}`;
     if (value > options.maximum) return `Le maximum par retrait est de ${money(options.maximum)}.`;
     if (!mode) return 'Choisissez votre opérateur Mobile Money.';
     const digits = phone.replace(/\D/g, '');
@@ -113,9 +127,15 @@ export function WithdrawalMethodsScreen() {
       </View>
 
       <View style={styles.balanceCard}>
-        <Text style={styles.balanceLabel}>DISPONIBLE AU RETRAIT</Text>
+        <Text style={styles.balanceLabel}>RETIRABLE MAINTENANT</Text>
         <Text style={styles.balanceAmount}>{money(available)}</Text>
         <Text style={styles.balanceHint}>Minimum {money(options?.minimum ?? 500)} par retrait</Text>
+        {waiting.amount > 0 ? (
+          <View style={styles.waiting}>
+            <Hourglass size={14} color="#EAC494" />
+            <Text style={styles.waitingText}>{money(waiting.amount)} libérés récemment, retirables {releaseLabel(waiting.at)}.</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -151,7 +171,7 @@ export function WithdrawalMethodsScreen() {
         <Pressable style={[styles.submit, (submitting || pending || !available) && styles.submitDisabled]} onPress={confirm} disabled={submitting || pending || !available}>
           {submitting ? <ActivityIndicator color="white" /> : <><Text style={styles.submitText}>{pending ? 'Un retrait est en cours…' : 'Retirer'}</Text><ArrowUpRight size={17} color="white" /></>}
         </Pressable>
-        <Text style={styles.note}>Le virement est effectué par FedaPay, généralement en quelques minutes. En cas d’échec, le montant revient automatiquement dans votre solde.</Text>
+        <Text style={styles.note}>Par sécurité, chaque montant devient retirable {options?.delaiHeures ?? 24} h après sa libération (scan du QR par le client). Le virement est effectué par FedaPay, généralement en quelques minutes ; en cas d’échec, le montant revient dans votre solde.</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Historique des retraits</Text>
@@ -188,6 +208,8 @@ const styles = StyleSheet.create({
   balanceLabel: { color: '#EAC494', fontSize: 10, fontWeight: '800', letterSpacing: 1.4 },
   balanceAmount: { color: '#FFF5E8', fontSize: 30, fontWeight: '800', marginTop: 6 },
   balanceHint: { color: 'rgba(255,245,232,0.75)', fontSize: 12, marginTop: 4 },
+  waiting: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12, borderRadius: 10, backgroundColor: 'rgba(255,245,232,0.1)', padding: 10 },
+  waitingText: { flex: 1, color: '#FFF5E8', fontSize: 12, lineHeight: 17 },
   card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 16, gap: 10 },
   label: { color: colors.ink, fontSize: 12, fontWeight: '800', marginTop: 4 },
   amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.line, borderRadius: 12, paddingLeft: 12, paddingRight: 6, paddingVertical: 4 },
