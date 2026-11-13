@@ -45,3 +45,18 @@ export type SellerAnalytics = {
   topProducts: Array<{ produitId: number; name: string; quantity: number; revenue: number; orders: number }>;
   recentOrders: Array<{ venteId: number; reference: string; date: string; montant: number; statut: string; articles: Array<{ produitId: number; nom: string; quantite: number; prixUnitaire: number }> }>;
 };
+
+// --- Retraits vers Mobile Money (payout FedaPay) ---
+const paiementApi = createApi("paiement");
+
+export type WithdrawalStatus = 'en_cours' | 'envoye' | 'echoue';
+export type Withdrawal = { id: number; reference: string; montant: number; mode: string; telephone: string; statut: WithdrawalStatus; erreur?: string | null; createdAt: string };
+export type WithdrawalOptions = { pays: string; indicatif: string; longueurNumero: number | null; minimum: number; maximum: number; modes: Array<{ mode: string; label: string }> };
+export type WithdrawalBalances = { libere: number; enCours: number; retire: number; disponible: number };
+
+export const withdrawalsApi = {
+  options: async (): Promise<WithdrawalOptions> => (await paiementApi.get('/retraits/options')).data,
+  list: async (): Promise<{ soldes: WithdrawalBalances; retraits: Withdrawal[] }> => (await paiementApi.get('/retraits')).data,
+  request: async (payload: { montant: number; mode: string; telephone: string }): Promise<Withdrawal> => (await paiementApi.post('/retraits', payload)).data,
+  refresh: async (id: number): Promise<Withdrawal> => (await paiementApi.post(`/retraits/${id}/actualiser`)).data,
+};

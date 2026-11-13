@@ -53,7 +53,7 @@ const navItems: NavItem[] = [
   { key: 'orders', label: 'Commandes reçues', icon: ShoppingCart },
   { key: 'marketplace', label: 'Marketplace', icon: LayoutGrid },
   { key: 'wallet', label: 'Portefeuille', icon: Wallet },
-  { key: 'withdrawal-methods', label: 'Moyens de retrait', icon: CreditCard },
+  { key: 'withdrawal-methods', label: 'Retirer mes gains', icon: CreditCard },
   { key: 'analytics', label: 'Analyses', icon: BarChart3 },
   { key: 'opportunities', label: 'Opportunités', icon: Briefcase },
   { key: 'subscriptions', label: 'Abonnements', icon: CreditCard },

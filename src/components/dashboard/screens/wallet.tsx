@@ -15,9 +15,9 @@ type SellerRemise = {
   articles: Array<{ nom: string; quantite: number }>;
 };
 
-type SellerWalletData = { disponible: number; bloque: number; rembourse: number; messageVersement: string };
+type SellerWalletData = { disponible: number; bloque: number; rembourse: number; retire?: number; retraitEnCours?: number; messageVersement: string };
 
-export function WalletScreen({ onNavigate: _onNavigate, ordersOnly = false }: { onNavigate?: (screen: 'withdrawal-methods') => void; ordersOnly?: boolean }) {
+export function WalletScreen({ onNavigate, ordersOnly = false }: { onNavigate?: (screen: 'withdrawal-methods') => void; ordersOnly?: boolean }) {
   const [wallet, setWallet] = useState<SellerWalletData | null>(null);
   const [orders, setOrders] = useState<SellerRemise[]>([]);
   const [qr, setQr] = useState<{ qrDataUrl: string; venteId: number } | null>(null);
@@ -35,10 +35,12 @@ export function WalletScreen({ onNavigate: _onNavigate, ordersOnly = false }: { 
   return <View style={styles.content}>
     <View style={styles.header}><Text style={styles.title}>{ordersOnly ? 'Commandes reçues' : 'Portefeuille'}</Text><Text style={styles.subtitle}>{ordersOnly ? 'Suivez les commandes payées et les remises à confirmer.' : 'Montants issus de vos commandes Orion.'}</Text></View>
     {!ordersOnly ? <LinearGradient colors={[colors.burgundy, colors.burgundyDark]} style={styles.walletCard}>
-      <Text style={styles.walletLabel}>SOLDE LIBÉRÉ DANS ORION</Text>
+      <Text style={styles.walletLabel}>DISPONIBLE AU RETRAIT</Text>
       <Text style={styles.walletAmount}>{format(wallet?.disponible ?? 0)}</Text>
-      <Text style={styles.walletSubtext}>En attente de remise : {format(wallet?.bloque ?? 0)}</Text>
-      <Text style={styles.walletSubtext}>{wallet?.messageVersement ?? 'Le versement Mobile Money nécessite l’activation des payouts FedaPay.'}</Text>
+      <Text style={styles.walletSubtext}>En attente de remise : {format(wallet?.bloque ?? 0)}{wallet?.retire ? ` · déjà retiré : ${format(wallet.retire)}` : ''}</Text>
+      <Pressable style={styles.withdrawButton} onPress={() => onNavigate?.('withdrawal-methods')} accessibilityRole="button">
+        <Text style={styles.withdrawButtonText}>Retirer mes gains</Text>
+      </Pressable>
     </LinearGradient> : null}
     {error ? <Text style={styles.error}>{error}</Text> : null}
     {!ordersOnly ? <View style={styles.sectionRow}><Text style={styles.sectionTitle}>Commandes et remises</Text><Pressable onPress={refresh}><Text style={styles.refresh}>Actualiser</Text></Pressable></View> : <Pressable style={styles.refreshButton} onPress={refresh}><Text style={styles.refresh}>Actualiser les commandes</Text></Pressable>}
@@ -61,6 +63,8 @@ export function SellerOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
+  withdrawButton: { alignSelf: 'flex-start', marginTop: 14, borderRadius: 11, backgroundColor: '#FFF5E8', paddingHorizontal: 16, paddingVertical: 10 },
+  withdrawButtonText: { color: '#841438', fontSize: 13, fontWeight: '800' },
   content: { padding: spacing.md, paddingBottom: 36, gap: spacing.sm },
   header: { marginBottom: spacing.sm },
   title: { color: colors.ink, fontSize: 24, fontWeight: '800' },
